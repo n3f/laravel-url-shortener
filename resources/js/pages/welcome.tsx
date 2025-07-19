@@ -2,7 +2,13 @@ import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function Welcome() {
-    const { auth } = usePage<SharedData>().props;
+    const { auth, error } = usePage<SharedData>().props;
+    const errorMessage =
+        typeof error === 'string'
+            ? error
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            : (error && typeof (error as any).message === 'string' ? (error as any).message
+                                                                   : undefined);
 
     return (
         <>
@@ -38,6 +44,11 @@ export default function Welcome() {
                         )}
                     </nav>
                 </header>
+                {errorMessage && (
+                    <div className="mb-6 w-full max-w-[335px] rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200 lg:max-w-4xl">
+                        {errorMessage}
+                    </div>
+                )}
                 <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
                     <main className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
                         <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-[20px] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">

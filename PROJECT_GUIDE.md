@@ -84,10 +84,10 @@ enable_expiration: false
 
 ### Phase 2: Enhancement
 
-4. **Validation & Error Handling**
-    - URL validation
-    - Duplicate handling
+4. **API, Authentication & Error Handling**
     - Comprehensive error responses
+    - Authentication (required for creating short URLs)
+    - Rate limiting
 5. **Configuration & Environment**
     - Environment variables
     - Configurable settings
