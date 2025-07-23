@@ -44,11 +44,16 @@ class UrlController extends Controller
     /**
      * Redirect short code to original URL.
      */
-    public function redirect(string $code): RedirectResponse
+    public function redirect(string $code, Request $request): RedirectResponse
     {
         $url = Url::where('short_code', $code)->first();
 
         if (!$url) {
+            // Return 404 for API clients (curl, etc.) and redirect for browsers
+            if ($request->expectsJson() || $request->header('User-Agent') === 'curl') {
+                abort(404, 'URL not found');
+            }
+
             return redirect()->route('home')->with('error', 'URL not found');
         }
 

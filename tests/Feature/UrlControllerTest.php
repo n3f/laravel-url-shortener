@@ -84,11 +84,32 @@ class UrlControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_404_for_invalid_short_code()
+    public function it_returns_404_for_invalid_short_code_when_requesting_json()
     {
-        $response = $this->get('/invalid');
+        $response = $this->getJson('/invalid');
 
         $response->assertStatus(404);
+    }
+
+    #[Test]
+    public function it_returns_404_for_invalid_short_code_when_curl_user_agent()
+    {
+        $response = $this->withHeaders([
+            'User-Agent' => 'curl'
+        ])->get('/invalid');
+
+        $response->assertStatus(404);
+    }
+
+    #[Test]
+    public function it_redirects_to_home_for_invalid_short_code_in_browser()
+    {
+        $response = $this->withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+        ])->get('/invalid');
+
+        $response->assertRedirect(route('home'));
+        $response->assertSessionHas('error', 'URL not found');
     }
 
     #[Test]
