@@ -16,17 +16,9 @@ class UrlController extends Controller
      */
     public function shorten(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'url' => 'required|url|max:2048',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Invalid URL',
-                'code' => 'INVALID_URL',
-                'message' => $validator->errors()->first('url'),
-            ], 422);
-        }
 
         $url = Url::create([
             'original_url' => $request->url,

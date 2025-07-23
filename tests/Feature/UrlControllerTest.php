@@ -39,11 +39,7 @@ class UrlControllerTest extends TestCase
             'url' => 'not-a-valid-url',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJson([
-                'error' => 'Invalid URL',
-                'code' => 'INVALID_URL',
-            ]);
+        $response->assertStatus(422);
     }
 
     #[Test]
@@ -51,11 +47,7 @@ class UrlControllerTest extends TestCase
     {
         $response = $this->postJson('/api/shorten', []);
 
-        $response->assertStatus(422)
-            ->assertJson([
-                'error' => 'Invalid URL',
-                'code' => 'INVALID_URL',
-            ]);
+        $response->assertStatus(422);
     }
 
     #[Test]
