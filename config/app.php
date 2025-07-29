@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Registration Settings
+    |--------------------------------------------------------------------------
+    |
+    | This option determines whether user registration is enabled.
+    | Set to false to disable registration functionality.
+    |
+    */
+
+    'allow_registration' => env('ALLOW_REGISTRATION', false),
+
 ];
