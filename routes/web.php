@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Models\Url;
 
 Route::get('/', function () {
     Log::info('Home page visited');
@@ -13,7 +14,13 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
+        $urls = Url::where('user_id', auth()->user()->id)
+            ->orWhere('user_id', null)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+        return Inertia::render('dashboard', [
+            'urls' => $urls,
+        ]);
     })->name('dashboard');
 });
 
