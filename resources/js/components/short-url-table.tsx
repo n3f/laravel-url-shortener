@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Copy, ExternalLink, Calendar, Link, User } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 // Simple date formatting function
 function formatRelativeTime(date: string | Date): string {
@@ -35,6 +35,15 @@ function ShortUrlTableHeader() {
 
 function ShortUrlTableRow({ url }: { url: Url }) {
     const [copied, setCopied] = useState(false);
+    const timeoutRef = useRef<NodeJS.Timeout>(null);
+
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
 
     const copyToClipboard = async (text: string) => {
         try {
@@ -50,7 +59,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                 document.body.removeChild(textArea);
             }
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            timeoutRef.current = setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy:', err);
         }
