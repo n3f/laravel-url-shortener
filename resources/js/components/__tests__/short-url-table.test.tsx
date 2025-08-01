@@ -100,14 +100,21 @@ describe('ShortUrlTable', () => {
         expect(mockWriteText).toHaveBeenCalledWith('http://localhost/abc123');
     });
 
-    it('handles external link button click', async () => {
-        const user = userEvent.setup();
+    it('renders external links with correct attributes', () => {
         render(<ShortUrlTable urls={mockUrls} />);
 
-        const externalButtons = screen.getAllByTestId('external-link-button');
-        await user.click(externalButtons[0]);
+        const externalLinks = screen.getAllByTestId('external-link');
+        expect(externalLinks).toHaveLength(2);
 
-        expect(window.open).toHaveBeenCalledWith('https://example.com/very-long-url-that-should-be-truncated', '_blank');
+        // Check first link attributes
+        expect(externalLinks[0]).toHaveAttribute('href', 'https://example.com/very-long-url-that-should-be-truncated');
+        expect(externalLinks[0]).toHaveAttribute('target', '_blank');
+        expect(externalLinks[0]).toHaveAttribute('rel', 'noopener noreferrer');
+
+        // Check second link attributes
+        expect(externalLinks[1]).toHaveAttribute('href', 'https://google.com');
+        expect(externalLinks[1]).toHaveAttribute('target', '_blank');
+        expect(externalLinks[1]).toHaveAttribute('rel', 'noopener noreferrer');
     });
 
     it('shows "Never" badge for URLs without expiration', () => {

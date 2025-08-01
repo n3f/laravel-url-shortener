@@ -89,16 +89,16 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                 </Tooltip>
             </div>
             <div className="col-span-6 md:col-span-5 lg:col-span-6 flex items-center gap-2">
-                <span className="truncate text-muted-foreground">{url.original_url}</span>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => window.open(url.original_url, '_blank')}
-                    data-testid="external-link-button"
+                <a
+                    href={url.original_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 hover:text-foreground hover:underline transition-colors p-3 -m-3 rounded"
+                    data-testid="external-link"
                 >
+                    <span className="truncate text-muted-foreground">{url.original_url}</span>
                     <ExternalLink className="h-3 w-3" />
-                </Button>
+                </a>
             </div>
             <div className="col-span-1 hidden md:block lg:col-span-1 flex items-center">
                 <span>{url.clicks}</span>
