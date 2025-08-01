@@ -78,6 +78,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                             size="sm"
                             className="h-6 w-6 p-0"
                             onClick={() => copyToClipboard(url.short_url || `${window.location.origin}/${url.short_code}`)}
+                            data-testid="copy-button"
                         >
                             <Copy className="h-3 w-3" />
                         </Button>
@@ -94,6 +95,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     size="sm"
                     className="h-6 w-6 p-0"
                     onClick={() => window.open(url.original_url, '_blank')}
+                    data-testid="external-link-button"
                 >
                     <ExternalLink className="h-3 w-3" />
                 </Button>
@@ -133,6 +135,7 @@ export default function ShortUrlTable({ urls, className }: { urls: Pagination<Ur
                 {urls.data.map((url) => (
                     <ShortUrlTableRow key={url.id} url={url} />
                 ))}
+                {/* TODO:: Add pagination */}
                 {urls.data.length === 0 && (
                     <div className="px-6 py-12 text-center text-muted-foreground">
                         <Link className="h-12 w-12 mx-auto mb-4 opacity-50" />
