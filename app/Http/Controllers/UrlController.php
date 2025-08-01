@@ -19,12 +19,14 @@ class UrlController extends Controller
     {
         $request->validate([
             'url' => 'required|url|max:2048',
+            'short_code' => 'nullable|string|between:4,255|unique:urls,short_code',
             'expires_at' => 'nullable|date|after:now',
         ]);
 
         $data = [
             'original_url' => $request->url,
-            'short_code' => Url::generateShortCode(),
+            'short_code' => $request->short_code ?? Url::generateShortCode(),
+            'expires_at' => $request->expires_at ? Carbon::parse($request->expires_at) : null,
             'user_id' => Auth::check() ? Auth::user()->id : null,
         ];
 

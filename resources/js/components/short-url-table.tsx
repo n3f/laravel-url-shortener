@@ -12,7 +12,7 @@ function formatRelativeTime(date: string | Date): string {
     const diffInSeconds = Math.floor(Math.abs(now.getTime() - targetDate.getTime()) / 1000);
     const isFuture = targetDate > now;
 
-    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 60) return isFuture ? 'soon' : 'just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ${isFuture ? 'from now' : 'ago'}`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ${isFuture ? 'from now' : 'ago'}`;
     if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ${isFuture ? 'from now' : 'ago'}`;
@@ -22,11 +22,11 @@ function formatRelativeTime(date: string | Date): string {
 
 function ShortUrlTableHeader() {
     return (
-        <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm text-muted-foreground font-bold border-b">
-            <div className="col-span-3 md:col-span-3 lg:col-span-3">Short URL</div>
+        <div className="grid grid-cols-12 gap-4 px-3 py-3 text-sm text-muted-foreground font-bold border-b">
+            <div className="col-span-3">Short URL</div>
             <div className="col-span-6 md:col-span-5 lg:col-span-6">Original URL</div>
-            <div className="col-span-1 hidden md:block md:col-span-1 lg:col-span-1">Clicks</div>
-            <div className="col-span-3 md:col-span-3 lg:col-span-2">Expires</div>
+            <div className="col-span-1 hidden md:block lg:col-span-1">Clicks</div>
+            <div className="col-span-3 lg:col-span-2">Expires</div>
         </div>
     );
 }
@@ -67,8 +67,8 @@ function ShortUrlTableRow({ url }: { url: Url }) {
     const expiresIn = url.expires_at ? formatRelativeTime(url.expires_at) : null;
 
     return (
-        <div className="grid grid-cols-12 gap-4 px-6 py-4 text-sm border-b hover:bg-muted/50 transition-colors items-center">
-            <div className="col-span-3 md:col-span-3 lg:col-span-3 flex items-center gap-2">
+        <div className="grid grid-cols-12 gap-4 px-3 py-4 text-sm border-b hover:bg-muted/50 transition-colors items-center even:bg-muted/25">
+            <div className="col-span-3 flex items-center gap-2">
                 <Link className="h-4 w-4 text-muted-foreground" />
                 <span className="font-mono text-sm">{url.short_code}</span>
                 <Tooltip open={copied}>
@@ -98,11 +98,11 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     <ExternalLink className="h-3 w-3" />
                 </Button>
             </div>
-            <div className="col-span-1 hidden md:block md:col-span-1 lg:col-span-1 flex items-center">
-                <span className="">{url.clicks}</span>
+            <div className="col-span-1 hidden md:block lg:col-span-1 flex items-center">
+                <span>{url.clicks}</span>
             </div>
 
-            <div className="col-span-3 md:col-span-3 lg:col-span-2 flex items-center gap-2">
+            <div className="col-span-3 lg:col-span-2 flex items-center gap-2">
                 {url.expires_at ? (
                     <>
                         <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -130,11 +130,9 @@ export default function ShortUrlTable({ urls, className }: { urls: Pagination<Ur
         <div className={className}>
             <div className="overflow-hidden">
                 <ShortUrlTableHeader />
-                <div className="divide-y">
-                    {urls.data.map((url) => (
-                        <ShortUrlTableRow key={url.id} url={url} />
-                    ))}
-                </div>
+                {urls.data.map((url) => (
+                    <ShortUrlTableRow key={url.id} url={url} />
+                ))}
                 {urls.data.length === 0 && (
                     <div className="px-6 py-12 text-center text-muted-foreground">
                         <Link className="h-12 w-12 mx-auto mb-4 opacity-50" />

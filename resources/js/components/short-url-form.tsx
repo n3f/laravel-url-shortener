@@ -111,6 +111,12 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
             clearTimeout(validationTimeouts[field]);
         }
 
+        // Clear any server side errors
+        setErrors(prev => {
+            const { alias, url, expires_at } = prev;
+            return { alias, url, expires_at };
+        });
+
         // Debounced validation
         const timeoutId = debouncedValidation(field, value);
         setValidationTimeouts(prev => ({ ...prev, [field]: timeoutId }));
@@ -145,11 +151,12 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
             };
 
             if (formData.alias?.trim()) {
-                payload.alias = formData.alias.trim();
+                payload.short_code = formData.alias.trim();
             }
 
             if (showExpiration && formData.expires_at?.trim()) {
-                payload.expires_at = formData.expires_at;
+                const localDate = new Date(formData.expires_at);
+                payload.expires_at = localDate.toISOString();
             }
 
             // Submit to backend
