@@ -2,7 +2,7 @@ import { type Pagination, type Url } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Copy, ExternalLink, Calendar, Link, User } from 'lucide-react';
+import { Copy, ExternalLink, Calendar, Link } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 // Simple date formatting function
@@ -23,12 +23,10 @@ function formatRelativeTime(date: string | Date): string {
 function ShortUrlTableHeader() {
     return (
         <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm text-muted-foreground font-bold border-b">
-            <div className="col-span-4 md:col-span-4 lg:col-span-3">Short URL</div>
-            <div className="col-span-5 md:col-span-4 lg:col-span-4">Original URL</div>
-            <div className="col-span-1 hidden lg:block lg:col-span-1">Clicks</div>
-            <div className="col-span-2 hidden md:block md:col-span-2">User</div>
-            <div className="col-span-2 hidden lg:block lg:col-span-1">Created</div>
-            <div className="col-span-3 md:col-span-2 lg:col-span-1">Expires</div>
+            <div className="col-span-3 md:col-span-3 lg:col-span-3">Short URL</div>
+            <div className="col-span-6 md:col-span-5 lg:col-span-6">Original URL</div>
+            <div className="col-span-1 hidden md:block md:col-span-1 lg:col-span-1">Clicks</div>
+            <div className="col-span-3 md:col-span-3 lg:col-span-2">Expires</div>
         </div>
     );
 }
@@ -70,7 +68,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
 
     return (
         <div className="grid grid-cols-12 gap-4 px-6 py-4 text-sm border-b hover:bg-muted/50 transition-colors items-center">
-            <div className="col-span-4 md:col-span-4 lg:col-span-3 flex items-center gap-2">
+            <div className="col-span-3 md:col-span-3 lg:col-span-3 flex items-center gap-2">
                 <Link className="h-4 w-4 text-muted-foreground" />
                 <span className="font-mono text-sm">{url.short_code}</span>
                 <Tooltip open={copied}>
@@ -89,7 +87,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     </TooltipContent>
                 </Tooltip>
             </div>
-            <div className="col-span-5 md:col-span-4 lg:col-span-4 flex items-center gap-2">
+            <div className="col-span-6 md:col-span-5 lg:col-span-6 flex items-center gap-2">
                 <span className="truncate text-muted-foreground">{url.original_url}</span>
                 <Button
                     variant="ghost"
@@ -100,25 +98,11 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     <ExternalLink className="h-3 w-3" />
                 </Button>
             </div>
-            <div className="col-span-1 hidden lg:block lg:col-span-1 flex items-center">
+            <div className="col-span-1 hidden md:block md:col-span-1 lg:col-span-1 flex items-center">
                 <span className="">{url.clicks}</span>
             </div>
-            <div className="col-span-2 flex items-center gap-2 hidden md:block md:col-span-2">
-                <User className="h-3 w-3 text-muted-foreground" />
-                <div className="flex flex-col">
-                    <span className="font-medium truncate">{url.user?.name || 'Unknown'}</span>
-                    <span className="text-xs text-muted-foreground truncate">{url.user?.email || 'No email'}</span>
-                </div>
-            </div>
-            <div className="col-span-2 flex items-center justify-start gap-1 hidden lg:block lg:col-span-1">
-                <div className="inline-flex items-center">
-                    <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                </div> &nbsp;
-                <span className="text-muted-foreground">
-                    {formatRelativeTime(url.created_at)}
-                </span>
-            </div>
-            <div className="col-span-3 md:col-span-2 lg:col-span-1 flex items-center gap-2">
+
+            <div className="col-span-3 md:col-span-3 lg:col-span-2 flex items-center gap-2">
                 {url.expires_at ? (
                     <>
                         <Calendar className="h-3 w-3 text-muted-foreground" />

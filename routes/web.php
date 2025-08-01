@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\Url;
 
@@ -14,8 +15,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        $urls = Url::where('user_id', auth()->user()->id)
-            ->orWhere('user_id', null)
+        $urls = Url::where('user_id', Auth::user()->id)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
         return Inertia::render('dashboard', [
@@ -28,7 +28,7 @@ require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
 
 // URL Shortener Routes
-Route::middleware('throttle:10,1')->group(function () {
+Route::middleware(['auth', 'verified', 'throttle:10,1'])->group(function () {
     Route::post('/api/shorten', [App\Http\Controllers\UrlController::class, 'shorten'])->name('url.shorten');
     Route::get('/api/stats/{code}', [App\Http\Controllers\UrlController::class, 'stats'])->name('url.stats');
 });

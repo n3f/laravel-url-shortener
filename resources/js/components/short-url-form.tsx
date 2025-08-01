@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { router } from '@inertiajs/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,13 +16,21 @@ interface FormData {
     expires_at?: string;
 }
 
-type FormErrors = { [K in keyof FormData]?: string };
+type FormErrors = { [K in keyof FormData]?: string } & { [key: string]: string | undefined };
 
 export function ShortUrlForm({ className }: ShortUrlFormProps) {
     const [formData, setFormData] = useState<FormData>({});
     const [showExpiration, setShowExpiration] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [validationTimeouts, setValidationTimeouts] = useState<Record<string, NodeJS.Timeout>>({});
+
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(validationTimeouts).forEach(timeout => clearTimeout(timeout));
+        };
+    }, [validationTimeouts]);
 
     const validateUrl = (url: string): string | undefined => {
         if (!url.trim()) {
@@ -32,8 +41,8 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
 
         try {
             // If no protocol, prepend http:// for validation
-            const urlToValidate = trimmedUrl.includes('://') ? trimmedUrl : `http://${trimmedUrl}`;
-            new URL(urlToValidate);
+            // const urlToValidate = trimmedUrl.includes('://') ? trimmedUrl : `http://${trimmedUrl}`;
+            new URL(trimmedUrl);
         } catch {
             return 'Please enter a valid URL';
         }
@@ -89,7 +98,7 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
             }
 
             setErrors(prev => ({ ...prev, [field]: error }));
-        }, 300);
+        }, 500);
 
         return timeoutId;
     };
@@ -97,10 +106,14 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
     const handleInputChange = (field: 'url' | 'alias' | 'expires_at', value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
 
+        // Clear existing timeout for this field
+        if (validationTimeouts[field]) {
+            clearTimeout(validationTimeouts[field]);
+        }
+
         // Debounced validation
         const timeoutId = debouncedValidation(field, value);
-
-        return () => clearTimeout(timeoutId);
+        setValidationTimeouts(prev => ({ ...prev, [field]: timeoutId }));
     };
 
     const handleExpirationToggle = (checked: boolean) => {
@@ -139,16 +152,19 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
                 payload.expires_at = formData.expires_at;
             }
 
-            // TODO: Submit to backend
-            console.log('Submitting:', payload);
-
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Reset form on success
-            setFormData({});
-            setShowExpiration(false);
-            setErrors({});
+            // Submit to backend
+            router.post('/api/shorten', payload, {
+                onSuccess: () => {
+                    // Reset form on success
+                    setFormData({});
+                    setShowExpiration(false);
+                    setErrors({});
+                },
+                onError: (errors: Record<string, string>) => {
+                    // Handle validation errors from backend
+                    setErrors(errors);
+                },
+            });
         } catch (error) {
             console.error('Error submitting form:', error);
         } finally {
@@ -162,6 +178,17 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
         <div className={`${className} flex items-center justify-center min-h-full w-full`}>
             <form onSubmit={handleSubmit} className="w-full" noValidate>
                 <div className="grid grid-cols-12 gap-4" style={{ gridTemplateRows: showExpiration ? 'auto auto auto' : 'auto auto' }}>
+                    {/* General errors not tied to specific form fields */}
+                    {Object.entries(errors)
+                        .filter(([key]) => !['url', 'alias', 'expires_at'].includes(key))
+                        .map(([key, value]) => (
+                            <div key={key} className="col-span-12">
+                                <Alert variant="destructive">
+                                    <AlertDescription>{value}</AlertDescription>
+                                </Alert>
+                            </div>
+                        ))}
+
                     {/* URL Error */}
                     {errors.url && (
                         <div className="col-span-12">

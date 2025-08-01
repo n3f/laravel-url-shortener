@@ -8,13 +8,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Inertia\Inertia;
 
 class UrlController extends Controller
 {
     /**
      * Create a new short URL.
      */
-    public function shorten(Request $request): JsonResponse
+    public function shorten(Request $request)
     {
         $request->validate([
             'url' => 'required|url|max:2048',
@@ -34,12 +35,20 @@ class UrlController extends Controller
 
         $url = Url::create($data);
 
-        return response()->json([
+        $response = [
             'short_url' => $url->short_url,
             'code' => $url->short_code,
             'original_url' => $url->original_url,
             'expires_at' => $url->expires_at?->toISOString(),
-        ], 201);
+        ];
+
+        // Return JSON for API calls, Inertia response for web requests
+        if ($request->expectsJson()) {
+            return response()->json($response, 201);
+        }
+
+        // For Inertia requests, redirect back to refresh the URLs list
+        return redirect()->back();
     }
 
     /**
@@ -78,7 +87,9 @@ class UrlController extends Controller
      */
     public function stats(string $code): JsonResponse
     {
-        $url = Url::where('short_code', $code)->first();
+        $url = Url::where('short_code', $code)
+        ->where('user_id', Auth::user()->id)
+        ->first();
 
         if (!$url) {
             return response()->json([
