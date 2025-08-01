@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Carbon\Carbon;
 
 class UrlControllerTest extends TestCase
 {
@@ -30,6 +31,166 @@ class UrlControllerTest extends TestCase
         $this->assertDatabaseHas('urls', [
             'original_url' => 'https://example.com/very/long/url/that/needs/shortening',
         ]);
+    }
+
+    #[Test]
+    public function it_can_create_a_short_url_with_expiration()
+    {
+        $expiresAt = Carbon::now()->addDays(7);
+
+        $response = $this->postJson('/api/shorten', [
+            'url' => 'https://example.com',
+            'expires_at' => $expiresAt->toISOString(),
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'short_url',
+                'code',
+                'original_url',
+                'expires_at',
+            ])
+            ->assertJson([
+                'original_url' => 'https://example.com',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'original_url' => 'https://example.com',
+            'expires_at' => $expiresAt->toDateTimeString(),
+        ]);
+    }
+
+    #[Test]
+    public function it_validates_expiration_date_is_in_future()
+    {
+        $pastDate = Carbon::now()->subDay();
+
+        $response = $this->postJson('/api/shorten', [
+            'url' => 'https://example.com',
+            'expires_at' => $pastDate->toISOString(),
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    #[Test]
+    public function it_validates_expiration_date_format()
+    {
+        $response = $this->postJson('/api/shorten', [
+            'url' => 'https://example.com',
+            'expires_at' => 'invalid-date',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    #[Test]
+    public function it_redirects_expired_url_to_home_with_error()
+    {
+        $url = Url::factory()->create([
+            'original_url' => 'https://google.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->subDay(),
+        ]);
+
+        $response = $this->withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+        ])->get('/abc123');
+
+        $response->assertRedirect(route('home'));
+        $response->assertSessionHas('error', 'URL has expired');
+    }
+
+    #[Test]
+    public function it_returns_410_for_expired_url_when_requesting_json()
+    {
+        $url = Url::factory()->create([
+            'original_url' => 'https://google.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->subDay(),
+        ]);
+
+        $response = $this->getJson('/abc123');
+
+        $response->assertStatus(410);
+    }
+
+    #[Test]
+    public function it_returns_410_for_expired_url_when_curl_user_agent()
+    {
+        $url = Url::factory()->create([
+            'original_url' => 'https://google.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->subDay(),
+        ]);
+
+        $response = $this->withHeaders([
+            'User-Agent' => 'curl'
+        ])->get('/abc123');
+
+        $response->assertStatus(410);
+    }
+
+    #[Test]
+    public function it_redirects_non_expired_url_normally()
+    {
+        $url = Url::factory()->create([
+            'original_url' => 'https://google.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->addDay(),
+        ]);
+
+        $response = $this->get('/abc123');
+
+        $response->assertRedirect('https://google.com');
+    }
+
+    #[Test]
+    public function it_includes_expiration_in_stats_response()
+    {
+        $expiresAt = Carbon::now()->addDays(7);
+        $url = Url::factory()->create([
+            'original_url' => 'https://google.com',
+            'short_code' => 'abc123',
+            'clicks' => 42,
+            'expires_at' => $expiresAt,
+        ]);
+
+        $response = $this->getJson('/api/stats/abc123');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'clicks' => 42,
+                'short_code' => 'abc123',
+                'original_url' => 'https://google.com',
+                'is_expired' => false,
+            ])
+            ->assertJsonStructure([
+                'clicks',
+                'created_at',
+                'expires_at',
+                'is_expired',
+                'short_code',
+                'original_url',
+            ]);
+    }
+
+    #[Test]
+    public function it_shows_expired_status_in_stats_for_expired_url()
+    {
+        $url = Url::factory()->create([
+            'original_url' => 'https://google.com',
+            'short_code' => 'abc123',
+            'clicks' => 42,
+            'expires_at' => Carbon::now()->subDay(),
+        ]);
+
+        $response = $this->getJson('/api/stats/abc123');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'is_expired' => true,
+            ]);
     }
 
     #[Test]

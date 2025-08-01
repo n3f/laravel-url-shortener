@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class UrlController extends Controller
 {
@@ -18,18 +18,27 @@ class UrlController extends Controller
     {
         $request->validate([
             'url' => 'required|url|max:2048',
+            'expires_at' => 'nullable|date|after:now',
         ]);
 
-        $url = Url::create([
+        $data = [
             'original_url' => $request->url,
             'short_code' => Url::generateShortCode(),
-            'user_id' => Auth::check() ? Auth::user()->id : null, // Will be null if not authenticated
-        ]);
+            'user_id' => Auth::check() ? Auth::user()->id : null,
+        ];
+
+        // Add expiration if provided
+        if ($request->filled('expires_at')) {
+            $data['expires_at'] = Carbon::parse($request->expires_at);
+        }
+
+        $url = Url::create($data);
 
         return response()->json([
             'short_url' => $url->short_url,
             'code' => $url->short_code,
             'original_url' => $url->original_url,
+            'expires_at' => $url->expires_at?->toISOString(),
         ], 201);
     }
 
@@ -47,6 +56,15 @@ class UrlController extends Controller
             }
 
             return redirect()->route('home')->with('error', 'URL not found');
+        }
+
+        // Check if URL has expired
+        if ($url->expires_at && $url->expires_at->isPast()) {
+            if ($request->expectsJson() || $request->header('User-Agent') === 'curl') {
+                abort(410, 'URL has expired');
+            }
+
+            return redirect()->route('home')->with('error', 'URL has expired');
         }
 
         // Increment click count
@@ -72,6 +90,8 @@ class UrlController extends Controller
         return response()->json([
             'clicks' => $url->clicks,
             'created_at' => $url->created_at->toISOString(),
+            'expires_at' => $url->expires_at?->toISOString(),
+            'is_expired' => $url->expires_at ? $url->expires_at->isPast() : false,
             'short_code' => $url->short_code,
             'original_url' => $url->original_url,
         ]);

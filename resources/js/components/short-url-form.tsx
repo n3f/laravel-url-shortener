@@ -2,18 +2,25 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ShortUrlFormProps {
     className?: string;
 }
 
+interface FormData {
+    url?: string;
+    alias?: string;
+    expires_at?: string;
+}
+
+type FormErrors = { [K in keyof FormData]?: string };
+
 export function ShortUrlForm({ className }: ShortUrlFormProps) {
-    const [formData, setFormData] = useState({
-        url: '',
-        alias: ''
-    });
-    const [errors, setErrors] = useState<{ url?: string; alias?: string }>({});
+    const [formData, setFormData] = useState<FormData>({});
+    const [showExpiration, setShowExpiration] = useState(false);
+    const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const validateUrl = (url: string): string | undefined => {
@@ -50,7 +57,26 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
         return undefined;
     };
 
-    const debouncedValidation = (field: 'url' | 'alias', value: string) => {
+    const validateExpiration = (expires_at: string): string | undefined => {
+        if (!expires_at.trim()) {
+            return undefined; // Expiration is optional
+        }
+
+        const expirationDate = new Date(expires_at);
+        const now = new Date();
+
+        if (isNaN(expirationDate.getTime())) {
+            return 'Please enter a valid date';
+        }
+
+        if (expirationDate <= now) {
+            return 'Expiration date must be in the future';
+        }
+
+        return undefined;
+    };
+
+    const debouncedValidation = (field: 'url' | 'alias' | 'expires_at', value: string) => {
         const timeoutId = setTimeout(() => {
             let error: string | undefined;
 
@@ -58,6 +84,8 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
                 error = validateUrl(value);
             } else if (field === 'alias') {
                 error = validateAlias(value);
+            } else if (field === 'expires_at') {
+                error = validateExpiration(value);
             }
 
             setErrors(prev => ({ ...prev, [field]: error }));
@@ -66,7 +94,7 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
         return timeoutId;
     };
 
-    const handleInputChange = (field: 'url' | 'alias', value: string) => {
+    const handleInputChange = (field: 'url' | 'alias' | 'expires_at', value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
 
         // Debounced validation
@@ -75,29 +103,51 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
         return () => clearTimeout(timeoutId);
     };
 
+    const handleExpirationToggle = (checked: boolean) => {
+        setShowExpiration(checked);
+        if (!checked) {
+            setFormData(prev => ({ ...prev, expires_at: undefined }));
+            setErrors(prev => ({ ...prev, expires_at: undefined }));
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Final validation before submission
-        const urlError = validateUrl(formData.url);
-        const aliasError = validateAlias(formData.alias);
+        const urlError = validateUrl(formData.url || '');
+        const aliasError = validateAlias(formData.alias || '');
+        const expirationError = showExpiration ? validateExpiration(formData.expires_at || '') : undefined;
 
-        if (urlError || aliasError) {
-            setErrors({ url: urlError, alias: aliasError });
+        if (urlError || aliasError || expirationError) {
+            setErrors({ url: urlError, alias: aliasError, expires_at: expirationError });
             return;
         }
 
         setIsSubmitting(true);
 
         try {
+            const payload: Record<string, string> = {
+                url: formData.url?.trim() || '',
+            };
+
+            if (formData.alias?.trim()) {
+                payload.alias = formData.alias.trim();
+            }
+
+            if (showExpiration && formData.expires_at?.trim()) {
+                payload.expires_at = formData.expires_at;
+            }
+
             // TODO: Submit to backend
-            console.log('Submitting:', formData);
+            console.log('Submitting:', payload);
 
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Reset form on success
-            setFormData({ url: '', alias: '' });
+            setFormData({});
+            setShowExpiration(false);
             setErrors({});
         } catch (error) {
             console.error('Error submitting form:', error);
@@ -111,61 +161,107 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
     return (
         <div className={`${className} flex items-center justify-center min-h-full w-full`}>
             <form onSubmit={handleSubmit} className="w-full" noValidate>
-                <div className="flex flex-col gap-6">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-4">
-                            <Label htmlFor="url" className="whitespace-nowrap w-32 text-sm font-medium">
-                                Enter the URL:
-                            </Label>
-                            <Input
-                                type="url"
-                                id="url"
-                                name="url"
-                                value={formData.url}
-                                onChange={(e) => handleInputChange('url', e.target.value)}
-                                placeholder="https://example.com"
-                                className="flex-1"
-                                aria-invalid={!!errors.url}
-                            />
-                        </div>
-                        {errors.url && (
-                            <Alert variant="destructive" className="mt-2">
+                <div className="grid grid-cols-12 gap-4" style={{ gridTemplateRows: showExpiration ? 'auto auto auto' : 'auto auto' }}>
+                    {/* URL Error */}
+                    {errors.url && (
+                        <div className="col-span-12">
+                            <Alert variant="destructive">
                                 <AlertDescription>{errors.url}</AlertDescription>
                             </Alert>
-                        )}
+                        </div>
+                    )}
+                    {/* URL Input */}
+                    <div className="col-span-12 flex items-center gap-4">
+                        <Label htmlFor="url" className="whitespace-nowrap w-32 text-sm font-medium">
+                            Enter the URL:
+                        </Label>
+                        <Input
+                            type="url"
+                            id="url"
+                            name="url"
+                            value={formData.url || ''}
+                            onChange={(e) => handleInputChange('url', e.target.value)}
+                            placeholder="https://example.com"
+                            className="flex-1"
+                            aria-invalid={!!errors.url}
+                        />
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
-                            <div className="flex items-center gap-4 flex-1">
-                                <Label htmlFor="alias" className="whitespace-nowrap w-32 text-sm font-medium">
-                                    Alias (optional):
-                                </Label>
-                                <Input
-                                    type="text"
-                                    id="alias"
-                                    name="alias"
-                                    value={formData.alias}
-                                    onChange={(e) => handleInputChange('alias', e.target.value)}
-                                    placeholder="my-custom-alias"
-                                    className="flex-1"
-                                    aria-invalid={!!errors.alias}
-                                />
-                            </div>
-                            <Button
-                                type="submit"
-                                disabled={hasErrors || isSubmitting}
-                                className="w-full lg:w-auto"
-                            >
-                                {isSubmitting ? 'Shortening...' : 'Shorten URL'}
-                            </Button>
-                        </div>
-                        {errors.alias && (
-                            <Alert variant="destructive" className="mt-2">
+                    {/* Alias Error */}
+                    {errors.alias && (
+                        <div className="col-span-12">
+                            <Alert variant="destructive">
                                 <AlertDescription>{errors.alias}</AlertDescription>
                             </Alert>
-                        )}
+                        </div>
+                    )}
+
+                    {/* Alias Input */}
+                    <div className="col-span-6 flex items-center gap-4 w-full">
+                        <Label htmlFor="alias" className="whitespace-nowrap w-32 text-sm font-medium">
+                            Alias (optional):
+                        </Label>
+                        <Input
+                            type="text"
+                            id="alias"
+                            name="alias"
+                            value={formData.alias || ''}
+                            onChange={(e) => handleInputChange('alias', e.target.value)}
+                            placeholder="my-custom-alias"
+                            className="flex-1"
+                            aria-invalid={!!errors.alias}
+                        />
                     </div>
+
+                    {/* Checkbox */}
+                    <div className="col-span-2 flex items-center justify-center gap-2">
+                        <Label htmlFor="show-expiration" className="text-sm">
+                            expires?
+                        </Label>
+                        <Checkbox
+                            id="show-expiration"
+                            checked={showExpiration}
+                            onCheckedChange={handleExpirationToggle}
+                        />
+                    </div>
+
+                    {/* Submit Button - spans both rows when expiration is shown */}
+                    <div className={`col-span-4 ${showExpiration ? 'row-span-2' : ''}`}>
+                        <Button
+                            type="submit"
+                            disabled={hasErrors || isSubmitting}
+                            className="w-full h-full"
+                        >
+                            {isSubmitting ? 'Shortening...' : 'Shorten URL'}
+                        </Button>
+                    </div>
+
+                    {/* Expiration Error */}
+                    {showExpiration && errors.expires_at && (
+                        <div className="col-span-12">
+                            <Alert variant="destructive">
+                                <AlertDescription>{errors.expires_at}</AlertDescription>
+                            </Alert>
+                        </div>
+                    )}
+
+                    {/* Expiration Input - only shown when checkbox is checked */}
+                    {showExpiration && (
+                        <div className="col-span-8 flex items-center gap-4">
+                            <Label htmlFor="expires_at" className="whitespace-nowrap w-32 text-sm font-medium">
+                                Expiration:
+                            </Label>
+                            <Input
+                                type="datetime-local"
+                                id="expires_at"
+                                name="expires_at"
+                                value={formData.expires_at || ''}
+                                onChange={(e) => handleInputChange('expires_at', e.target.value)}
+                                className="flex-1"
+                                aria-invalid={!!errors.expires_at}
+                            />
+                        </div>
+                    )}
                 </div>
             </form>
         </div>
