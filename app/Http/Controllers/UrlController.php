@@ -109,4 +109,42 @@ class UrlController extends Controller
             'original_url' => $url->original_url,
         ]);
     }
+
+    public function delete(int $id) {
+        // Validate that the code exists in the database
+        $url = Url::where('id', $id)->where('user_id', Auth::user()->id)->first();
+
+        if (!$url) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'error' => 'URL not found',
+                    'code' => 'URL_NOT_FOUND',
+                ], 404);
+            }
+            return redirect()->back()->with('error', 'URL not found');
+        }
+
+        $success = $url->delete();
+
+        // Return JSON for API calls, Inertia response for web requests
+        if ( ! $success) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'error' => 'Failed to delete URL',
+                    'code' => 'FAILED_TO_DELETE_URL',
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'Failed to delete URL');
+        }
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => 'URL deleted',
+                'code' => 'URL_DELETED',
+            ], 201);
+        }
+
+        // For Inertia requests, redirect back to refresh the URLs list
+        return redirect()->back()->with('success', 'URL deleted');
+    }
 }

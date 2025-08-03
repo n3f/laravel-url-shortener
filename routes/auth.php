@@ -11,13 +11,11 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    // Conditional registration routes
-    if (config('app.allow_registration', true)) {
-        Route::get('register', [RegisteredUserController::class, 'create'])
-            ->name('register');
+    // Registration routes - always defined, conditional logic handled in controller
+    Route::get('register', [RegisteredUserController::class, 'create'])
+        ->name('register');
 
-        Route::post('register', [RegisteredUserController::class, 'store']);
-    }
+    Route::post('register', [RegisteredUserController::class, 'store']);
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');

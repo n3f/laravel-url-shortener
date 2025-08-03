@@ -31,5 +31,6 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth', 'verified', 'throttle:10,1'])->group(function () {
     Route::post('/api/shorten', [App\Http\Controllers\UrlController::class, 'shorten'])->name('url.shorten');
     Route::get('/api/stats/{code}', [App\Http\Controllers\UrlController::class, 'stats'])->name('url.stats');
+    Route::delete('/api/url/{id}', [App\Http\Controllers\UrlController::class, 'delete'])->name('url.delete');
 });
 Route::get('/{code}', [App\Http\Controllers\UrlController::class, 'redirect'])->name('url.redirect');

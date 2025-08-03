@@ -2,8 +2,15 @@ import { type Pagination, type Url } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Copy, ExternalLink, Calendar, Link } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Copy, ExternalLink, Calendar, Link, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { router } from '@inertiajs/react';
 
 // Simple date formatting function
 function formatRelativeTime(date: string | Date): string {
@@ -23,10 +30,11 @@ function formatRelativeTime(date: string | Date): string {
 function ShortUrlTableHeader() {
     return (
         <div className="grid grid-cols-12 gap-4 px-3 py-3 text-sm text-muted-foreground font-bold border-b">
-            <div className="col-span-3">Short URL</div>
-            <div className="col-span-6 md:col-span-5 lg:col-span-6">Original URL</div>
-            <div className="col-span-1 hidden md:block lg:col-span-1">Clicks</div>
-            <div className="col-span-3 lg:col-span-2">Expires</div>
+            <div className="col-span-4 sm:col-span-3">Short URL</div>
+            <div className="col-span-6 md:col-span-5">Original URL</div>
+            <div className="col-span-1 hidden md:block">Clicks</div>
+            <div className="col-span-2 hidden sm:block">Expires</div>
+            <div className="col-span-2 sm:col-span-1 flex justify-center">Actions</div>
         </div>
     );
 }
@@ -63,23 +71,36 @@ function ShortUrlTableRow({ url }: { url: Url }) {
         }
     };
 
+    const handleDelete = async (urlId: number) => {
+        // TODO: Add confirmation dialog
+        try {
+            // TODO: Call delete API endpoint
+            console.log('Deleting URL with ID:', urlId);
+
+            // Submit to backend
+            router.delete(`/api/url/${urlId}`);
+
+        } catch (error) {
+            console.error('Failed to delete URL:', error);
+        }
+    };
+
     const isExpired = url.expires_at && new Date(url.expires_at) < new Date();
     const expiresIn = url.expires_at ? formatRelativeTime(url.expires_at) : null;
 
     return (
-        <div className="grid grid-cols-12 gap-4 px-3 py-4 text-sm border-b hover:bg-muted/50 transition-colors items-center even:bg-muted/25">
-            <div className="col-span-3 flex items-center gap-2">
-                <Link className="h-4 w-4 text-muted-foreground" />
-                <span className="font-mono text-sm">{url.short_code}</span>
+        <div className="group grid grid-cols-12 gap-4 px-3 py-3 text-sm border-b hover:bg-muted/50 transition-colors items-center even:bg-muted/25">
+            <div className="col-span-4 sm:col-span-3">
                 <Tooltip open={copied}>
                     <TooltipTrigger asChild>
                         <Button
-                            variant="ghost"
+                            variant="copy"
                             size="sm"
-                            className="h-6 w-6 p-0"
+                            className="h-auto p-2 flex items-center gap-2"
                             onClick={() => copyToClipboard(url.short_url || `${window.location.origin}/${url.short_code}`)}
                             data-testid="copy-button"
                         >
+                            <span className="font-mono text-sm">{url.short_code}</span>
                             <Copy className="h-3 w-3" />
                         </Button>
                     </TooltipTrigger>
@@ -88,7 +109,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     </TooltipContent>
                 </Tooltip>
             </div>
-            <div className="col-span-6 md:col-span-5 lg:col-span-6 flex items-center gap-2">
+            <div className="col-span-6 md:col-span-5 flex items-center gap-2">
                 <a
                     href={url.original_url}
                     target="_blank"
@@ -100,28 +121,52 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     <ExternalLink className="h-3 w-3" />
                 </a>
             </div>
-            <div className="col-span-1 hidden md:block lg:col-span-1 flex items-center">
+            <div className="col-span-1 hidden md:block flex items-center">
                 <span>{url.clicks}</span>
             </div>
 
-            <div className="col-span-3 lg:col-span-2 flex items-center gap-2">
+            <div className="col-span-2 hidden sm:block flex flex-wrap items-center gap-1">
                 {url.expires_at ? (
                     <>
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <div className="flex flex-col">
+                        <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
                             <span className="text-muted-foreground">{expiresIn}</span>
-                            {isExpired && (
-                                <Badge variant="destructive" className="text-xs">
-                                    Expired
-                                </Badge>
-                            )}
                         </div>
+
+                        {isExpired && (
+                            <Badge variant="destructive" className="text-xs mt-1">
+                                Expired
+                            </Badge>
+                        )}
                     </>
                 ) : (
                     <Badge variant="secondary" className="text-xs">
                         Never
                     </Badge>
                 )}
+            </div>
+            <div className="col-span-2 sm:col-span-1  flex items-center justify-center">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                        >
+                            <span className="sr-only">Actions</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => handleDelete(url.id)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     );
