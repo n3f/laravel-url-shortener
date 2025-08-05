@@ -15,7 +15,7 @@ class UrlController extends Controller
     /**
      * Create a new short URL.
      */
-    public function shorten(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'url' => 'required|url|max:2048',
@@ -87,9 +87,9 @@ class UrlController extends Controller
     /**
      * Get URL statistics (if analytics enabled).
      */
-    public function stats(string $code): JsonResponse
+    public function stats(int $id): JsonResponse
     {
-        $url = Url::where('short_code', $code)
+        $url = Url::where('id', $id)
         ->where('user_id', Auth::user()->id)
         ->first();
 
@@ -110,7 +110,7 @@ class UrlController extends Controller
         ]);
     }
 
-    public function delete(int $id) {
+    public function destroy(int $id) {
         // Validate that the code exists in the database
         $url = Url::where('id', $id)->where('user_id', Auth::user()->id)->first();
 

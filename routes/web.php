@@ -29,8 +29,8 @@ require __DIR__.'/auth.php';
 
 // URL Shortener Routes
 Route::middleware(['auth', 'verified', 'throttle:10,1'])->group(function () {
-    Route::post('/api/shorten', [App\Http\Controllers\UrlController::class, 'shorten'])->name('url.shorten');
-    Route::get('/api/stats/{code}', [App\Http\Controllers\UrlController::class, 'stats'])->name('url.stats');
-    Route::delete('/api/url/{id}', [App\Http\Controllers\UrlController::class, 'delete'])->name('url.delete');
+    Route::post('/api/urls', [App\Http\Controllers\UrlController::class, 'store'])->name('urls.store');
+    Route::get('/api/urls/{id}/stats', [App\Http\Controllers\UrlController::class, 'stats'])->name('urls.stats');
+    Route::delete('/api/urls/{id}', [App\Http\Controllers\UrlController::class, 'destroy'])->name('urls.destroy');
 });
 Route::get('/{code}', [App\Http\Controllers\UrlController::class, 'redirect'])->name('url.redirect');

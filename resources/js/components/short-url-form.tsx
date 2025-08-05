@@ -160,7 +160,7 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
             }
 
             // Submit to backend
-            router.post('/api/shorten', payload, {
+            router.post('/api/urls', payload, {
                 onSuccess: () => {
                     // Reset form on success
                     setFormData({});

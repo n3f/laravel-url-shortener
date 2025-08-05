@@ -20,7 +20,7 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', [
+        $response = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'https://example.com/very/long/url/that/needs/shortening',
         ]);
 
@@ -43,7 +43,7 @@ class UrlControllerTest extends TestCase
         $user = User::factory()->create();
         $expiresAt = Carbon::now()->addDays(7);
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', [
+        $response = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'https://example.com',
             'expires_at' => $expiresAt->toISOString(),
         ]);
@@ -72,7 +72,7 @@ class UrlControllerTest extends TestCase
         $user = User::factory()->create();
         $pastDate = Carbon::now()->subDay();
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', [
+        $response = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'https://example.com',
             'expires_at' => $pastDate->toISOString(),
         ]);
@@ -86,7 +86,7 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', [
+        $response = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'https://example.com',
             'expires_at' => 'invalid-date',
         ]);
@@ -169,7 +169,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/stats/abc123');
+        $response = $this->actingAs($user)->getJson('/api/urls/' . $url->id . '/stats');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -201,7 +201,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/stats/abc123');
+        $response = $this->actingAs($user)->getJson('/api/urls/' . $url->id . '/stats');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -215,7 +215,7 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', [
+        $response = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'not-a-valid-url',
         ]);
 
@@ -228,7 +228,7 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', []);
+        $response = $this->actingAs($user)->postJson('/api/urls', []);
 
         $response->assertStatus(422);
     }
@@ -240,7 +240,7 @@ class UrlControllerTest extends TestCase
         $user = User::factory()->create();
         $longUrl = 'https://example.com/' . str_repeat('a', 2048);
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', [
+        $response = $this->actingAs($user)->postJson('/api/urls', [
             'url' => $longUrl,
         ]);
 
@@ -318,7 +318,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/stats/abc123');
+        $response = $this->actingAs($user)->getJson('/api/urls/' . $url->id . '/stats');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -340,7 +340,7 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/stats/invalid');
+        $response = $this->actingAs($user)->getJson('/api/urls/999999/stats');
 
         $response->assertStatus(404)
             ->assertJson([
@@ -355,7 +355,7 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->createOne();
 
-        $response = $this->actingAs($user)->postJson('/api/shorten', [
+        $response = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'https://example.com',
         ]);
 
@@ -372,7 +372,7 @@ class UrlControllerTest extends TestCase
     {
         // This test is no longer valid since the API requires authentication
         // The route is protected by auth middleware
-        $response = $this->postJson('/api/shorten', [
+        $response = $this->postJson('/api/urls', [
             'url' => 'https://example.com',
         ]);
 
@@ -386,12 +386,12 @@ class UrlControllerTest extends TestCase
         $user = User::factory()->create();
 
         // Create first URL
-        $response1 = $this->actingAs($user)->postJson('/api/shorten', [
+        $response1 = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'https://example1.com',
         ]);
 
         // Create second URL
-        $response2 = $this->actingAs($user)->postJson('/api/shorten', [
+        $response2 = $this->actingAs($user)->postJson('/api/urls', [
             'url' => 'https://example2.com',
         ]);
 
@@ -442,7 +442,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->deleteJson('/api/url/' . $url->id);
+        $response = $this->actingAs($user)->deleteJson('/api/urls/' . $url->id);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -466,7 +466,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->delete('/api/url/' . $url->id);
+        $response = $this->actingAs($user)->delete('/api/urls/' . $url->id);
 
         $response->assertRedirect();
         $response->assertSessionHas('success', 'URL deleted');
@@ -482,7 +482,7 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->deleteJson('/api/url/999999');
+        $response = $this->actingAs($user)->deleteJson('/api/urls/999999');
 
         $response->assertStatus(404);
     }
@@ -493,9 +493,9 @@ class UrlControllerTest extends TestCase
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->deleteJson('/api/url/');
+        $response = $this->actingAs($user)->deleteJson('/api/urls/');
 
-        $response->assertStatus(404); // Route not found
+        $response->assertStatus(405); // Method not allowed (route exists but needs ID)
     }
 
     #[Test]
@@ -505,7 +505,7 @@ class UrlControllerTest extends TestCase
         $user = User::factory()->create();
 
         // Test with a non-existent ID
-        $response = $this->actingAs($user)->deleteJson('/api/url/123');
+        $response = $this->actingAs($user)->deleteJson('/api/urls/123');
 
         $response->assertStatus(404); // URL not found since 123 doesn't exist
     }
@@ -526,7 +526,7 @@ class UrlControllerTest extends TestCase
         // We can't easily mock the delete operation in this context,
         // but we can test the error handling by ensuring the URL exists
         // and the test passes when deletion succeeds
-        $response = $this->actingAs($user)->deleteJson('/api/url/' . $url->id);
+        $response = $this->actingAs($user)->deleteJson('/api/urls/' . $url->id);
 
         $response->assertStatus(201);
     }
@@ -543,7 +543,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->delete('/api/url/' . $url->id);
+        $response = $this->actingAs($user)->delete('/api/urls/' . $url->id);
 
         $response->assertRedirect();
         $response->assertSessionHas('success', 'URL deleted');
@@ -567,7 +567,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->deleteJson('/api/url/' . $url1->id);
+        $response = $this->actingAs($user)->deleteJson('/api/urls/' . $url1->id);
 
         $response->assertStatus(201);
 
@@ -590,7 +590,7 @@ class UrlControllerTest extends TestCase
             'original_url' => 'https://example.com',
         ]);
 
-        $response = $this->deleteJson('/api/url/' . $url->id);
+        $response = $this->deleteJson('/api/urls/' . $url->id);
 
         $response->assertStatus(401);
     }
@@ -605,7 +605,7 @@ class UrlControllerTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $response = $this->actingAs($user)->deleteJson('/api/url/' . $url->id);
+        $response = $this->actingAs($user)->deleteJson('/api/urls/' . $url->id);
 
         // Note: Email verification middleware behavior may vary in test environment
         // This test documents the expected behavior but may need adjustment
@@ -626,7 +626,7 @@ class UrlControllerTest extends TestCase
 
         // Make 11 requests (over the 10 per minute limit)
         for ($i = 0; $i < 11; $i++) {
-            $response = $this->actingAs($user)->deleteJson('/api/url/' . $url->id);
+            $response = $this->actingAs($user)->deleteJson('/api/urls/' . $url->id);
         }
 
         $response->assertStatus(429); // Too Many Requests

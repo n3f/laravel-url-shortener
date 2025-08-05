@@ -78,7 +78,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
             console.log('Deleting URL with ID:', urlId);
 
             // Submit to backend
-            router.delete(`/api/url/${urlId}`);
+            router.delete(`/api/urls/${urlId}`);
 
         } catch (error) {
             console.error('Failed to delete URL:', error);
