@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
@@ -25,7 +26,6 @@ class UrlController extends Controller
 
         $data = [
             'original_url' => $request->url,
-            'short_code' => $request->short_code ?? Url::generateShortCode(),
             'expires_at' => $request->expires_at ? Carbon::parse($request->expires_at) : null,
             'user_id' => Auth::check() ? Auth::user()->id : null,
         ];
@@ -35,7 +35,15 @@ class UrlController extends Controller
             $data['expires_at'] = Carbon::parse($request->expires_at);
         }
 
+        // Create with temporary short code first
+        $data['short_code'] = $request->short_code ?? Str::uuid()->toString();
         $url = Url::create($data);
+
+        // Generate proper short code from ID and update
+        if (!$request->short_code) {
+            $url->short_code = $url->generateShortCode();
+            $url->save();
+        }
 
         $response = [
             'short_url' => $url->short_url,

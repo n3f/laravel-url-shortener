@@ -20,7 +20,7 @@ class UrlFactory extends Factory
     {
         return [
             'original_url' => fake()->url(),
-            'short_code' => Url::generateShortCode(),
+            'short_code' => fake()->regexify('[A-Za-z0-9]{6}'),
             'user_id' => User::factory(),
             'clicks' => fake()->numberBetween(0, 1000),
             'expires_at' => fake()->optional()->dateTimeBetween('now', '+1 year'),

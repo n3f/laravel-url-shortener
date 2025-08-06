@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Sqids\Sqids;
 
 class Url extends Model
 {
     use HasFactory;
+
+    const CHARSET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
     protected $fillable = [
         'original_url',
@@ -34,19 +37,10 @@ class Url extends Model
     /**
      * Generate a unique short code.
      */
-    public static function generateShortCode(): string
+    public function generateShortCode(): string
     {
-        $charset = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
-        $length = 6;
-
-        do {
-            $code = '';
-            for ($i = 0; $i < $length; $i++) {
-                $code .= $charset[random_int(0, strlen($charset) - 1)];
-            }
-        } while (self::where('short_code', $code)->exists());
-
-        return $code;
+        $sqids = new Sqids( self::CHARSET );
+        return $sqids->encode( [$this->id] );
     }
 
     /**
