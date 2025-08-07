@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Url;
+use App\Http\Responses\UrlResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -52,38 +53,23 @@ class UrlController extends Controller
             'expires_at' => $url->expires_at?->toISOString(),
         ];
 
-        // Return JSON for API calls, Inertia response for web requests
-        if ($request->expectsJson()) {
-            return response()->json($response, 201);
-        }
-
-        // For Inertia requests, redirect back to refresh the URLs list
-        return redirect()->back();
+        return UrlResponse::created($response);
     }
 
     /**
      * Redirect short code to original URL.
      */
-    public function redirect(string $code, Request $request): RedirectResponse
+    public function redirect(string $code, Request $request): RedirectResponse|JsonResponse
     {
         $url = Url::where('short_code', $code)->first();
 
         if (!$url) {
-            // Return 404 for API clients (curl, etc.) and redirect for browsers
-            if ($request->expectsJson() || $request->header('User-Agent') === 'curl') {
-                abort(404, 'URL not found');
-            }
-
-            return redirect()->route('home')->with('error', 'URL not found');
+            return UrlResponse::notFound();
         }
 
         // Check if URL has expired
         if ($url->expires_at && $url->expires_at->isPast()) {
-            if ($request->expectsJson() || $request->header('User-Agent') === 'curl') {
-                abort(410, 'URL has expired');
-            }
-
-            return redirect()->route('home')->with('error', 'URL has expired');
+            return UrlResponse::gone();
         }
 
         // Increment click count
@@ -123,36 +109,15 @@ class UrlController extends Controller
         $url = Url::where('id', $id)->where('user_id', Auth::user()->id)->first();
 
         if (!$url) {
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'error' => 'URL not found',
-                    'code' => 'URL_NOT_FOUND',
-                ], 404);
-            }
-            return redirect()->back()->with('error', 'URL not found');
+            return UrlResponse::notFound();
         }
 
         $success = $url->delete();
 
-        // Return JSON for API calls, Inertia response for web requests
-        if ( ! $success) {
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'error' => 'Failed to delete URL',
-                    'code' => 'FAILED_TO_DELETE_URL',
-                ], 500);
-            }
-            return redirect()->back()->with('error', 'Failed to delete URL');
+        if (!$success) {
+            return UrlResponse::serverError();
         }
 
-        if (request()->expectsJson()) {
-            return response()->json([
-                'success' => 'URL deleted',
-                'code' => 'URL_DELETED',
-            ], 201);
-        }
-
-        // For Inertia requests, redirect back to refresh the URLs list
-        return redirect()->back()->with('success', 'URL deleted');
+        return UrlResponse::created(['code' => 'URL_DELETED'], 'URL deleted');
     }
 }
