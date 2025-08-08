@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use App\Models\Url;
 
@@ -15,9 +16,22 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
+        // Validate the request params
+        $validator = Validator::make(request()->all(), [
+            'sort' => 'in:clicks,expires_at,short_url,url',
+            'order' => 'in:asc,desc',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $order_by = request()->get('sort', 'created_at');
+        $order_direction = request()->get('order', 'desc');
+
         $urls = Url::where('user_id', Auth::user()->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->orderBy($order_by, $order_direction)
+            ->paginate(10);
         return Inertia::render('dashboard', [
             'urls' => $urls,
         ]);

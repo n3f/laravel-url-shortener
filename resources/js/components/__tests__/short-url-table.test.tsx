@@ -158,4 +158,60 @@ describe('ShortUrlTable', () => {
         expect(screen.getByText(/ago/)).toBeInTheDocument();
         expect(screen.getByText('Expired')).toBeInTheDocument();
     });
+
+    describe('Pagination', () => {
+        it('does not show pagination for single page results', () => {
+            render(<ShortUrlTable urls={mockUrls} />);
+
+            // Should not show pagination info since last_page is 1
+            expect(screen.queryByText(/Showing/)).not.toBeInTheDocument();
+        });
+
+        it('shows pagination info for multi-page results', () => {
+            const multiPageUrls: Pagination<Url> = {
+                ...mockUrls,
+                current_page: 1,
+                last_page: 3,
+                total: 25,
+                from: 1,
+                to: 10,
+                per_page: 10,
+            };
+
+            render(<ShortUrlTable urls={multiPageUrls} />);
+
+            expect(screen.getByText('Showing 1-10 of 25 URLs')).toBeInTheDocument();
+        });
+
+        it('does not show pagination for empty results', () => {
+            const emptyUrls: Pagination<Url> = {
+                ...mockUrls,
+                data: [],
+                total: 0,
+                from: 0,
+                to: 0,
+                last_page: 1,
+            };
+
+            render(<ShortUrlTable urls={emptyUrls} />);
+
+            expect(screen.queryByText(/Showing/)).not.toBeInTheDocument();
+        });
+
+        it('shows pagination info on different pages', () => {
+            const secondPageUrls: Pagination<Url> = {
+                ...mockUrls,
+                current_page: 2,
+                last_page: 3,
+                total: 25,
+                from: 11,
+                to: 20,
+                per_page: 10,
+            };
+
+            render(<ShortUrlTable urls={secondPageUrls} />);
+
+            expect(screen.getByText('Showing 11-20 of 25 URLs')).toBeInTheDocument();
+        });
+    });
 });

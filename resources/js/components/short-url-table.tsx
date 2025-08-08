@@ -8,6 +8,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PaginationInfo } from '@/components/ui/pagination-info';
+import { PaginationControls } from '@/components/ui/pagination';
 import { Copy, ExternalLink, Calendar, Link, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
@@ -173,6 +175,8 @@ function ShortUrlTableRow({ url }: { url: Url }) {
 }
 
 export default function ShortUrlTable({ urls, className }: { urls: Pagination<Url>, className?: string }) {
+    const showPagination = urls.last_page > 1;
+
     return (
         <div className={className}>
             <div className="overflow-hidden">
@@ -180,12 +184,18 @@ export default function ShortUrlTable({ urls, className }: { urls: Pagination<Ur
                 {urls.data.map((url) => (
                     <ShortUrlTableRow key={url.id} url={url} />
                 ))}
-                {/* TODO:: Add pagination */}
                 {urls.data.length === 0 && (
                     <div className="px-6 py-12 text-center text-muted-foreground">
                         <Link className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p>No URLs found</p>
                         <p className="text-sm">Create your first short URL to get started</p>
+                    </div>
+                )}
+                {/* Pagination Info */}
+                {showPagination && urls.data.length > 0 && (
+                    <div className="px-3 py-4 border-t flex justify-between items-center">
+                        <PaginationInfo pagination={urls} itemName="URLs" />
+                        <PaginationControls pagination={urls} />
                     </div>
                 )}
             </div>
