@@ -66,7 +66,7 @@ class UrlControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_validates_expiration_date_is_in_future()
+    public function it_allows_past_expiration_dates_when_creating()
     {
         /** @var \App\Models\User $user */
         $user = User::factory()->create();
@@ -77,7 +77,15 @@ class UrlControllerTest extends TestCase
             'expires_at' => $pastDate->toISOString(),
         ]);
 
-        $response->assertStatus(422);
+        $response->assertStatus(201)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'original_url' => 'https://example.com',
+            'expires_at' => $pastDate->toDateTimeString(),
+        ]);
     }
 
     #[Test]
@@ -630,5 +638,432 @@ class UrlControllerTest extends TestCase
         }
 
         $response->assertStatus(429); // Too Many Requests
+    }
+
+    // Edit endpoint tests
+    #[Test]
+    public function it_can_edit_url_original_url()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'url' => 'https://new-example.com',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://new-example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'original_url' => 'https://new-example.com',
+        ]);
+    }
+
+    #[Test]
+    public function it_can_edit_url_short_code()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'short_code' => 'new-code',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+                'code' => 'new-code',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'short_code' => 'new-code',
+        ]);
+    }
+
+    #[Test]
+    public function it_can_edit_url_expiration()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $newExpiration = Carbon::now()->addDays(30);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'expires_at' => $newExpiration->toISOString(),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'expires_at' => $newExpiration->toDateTimeString(),
+        ]);
+    }
+
+    #[Test]
+    public function it_can_remove_url_expiration()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->addDays(7),
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'expires_at' => '',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'expires_at' => null,
+        ]);
+    }
+
+    #[Test]
+    public function it_can_edit_multiple_fields_at_once()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $newExpiration = Carbon::now()->addDays(30);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'url' => 'https://new-example.com',
+            'short_code' => 'new-code',
+            'expires_at' => $newExpiration->toISOString(),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://new-example.com',
+                'code' => 'new-code',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'original_url' => 'https://new-example.com',
+            'short_code' => 'new-code',
+            'expires_at' => $newExpiration->toDateTimeString(),
+        ]);
+    }
+
+    #[Test]
+    public function it_returns_404_for_nonexistent_url()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/999999', [
+            'url' => 'https://example.com',
+        ]);
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'error' => 'URL not found',
+                'code' => 'URL_NOT_FOUND',
+            ]);
+    }
+
+    #[Test]
+    public function it_prevents_editing_other_users_urls()
+    {
+        /** @var \App\Models\User $user1 */
+        $user1 = User::factory()->create();
+        /** @var \App\Models\User $user2 */
+        $user2 = User::factory()->create();
+
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user1->id,
+        ]);
+
+        $response = $this->actingAs($user2)->patchJson('/api/urls/' . $url->id, [
+            'url' => 'https://hacked.com',
+        ]);
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'error' => 'URL not found',
+                'code' => 'URL_NOT_FOUND',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'original_url' => 'https://example.com',
+        ]);
+    }
+
+    #[Test]
+    public function it_validates_url_format_when_editing()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'url' => 'not-a-valid-url',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    #[Test]
+    public function it_validates_short_code_uniqueness_when_editing()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+
+        $url1 = Url::factory()->create([
+            'original_url' => 'https://example1.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $url2 = Url::factory()->create([
+            'original_url' => 'https://example2.com',
+            'short_code' => 'def456',
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url1->id, [
+            'short_code' => 'def456', // Same as url2
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    #[Test]
+    public function it_allows_keeping_same_short_code_when_editing()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'short_code' => 'abc123', // Same code
+            'url' => 'https://new-example.com',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'code' => 'abc123',
+                'original_url' => 'https://new-example.com',
+            ]);
+    }
+
+    #[Test]
+    public function it_allows_past_expiration_dates_when_editing()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $pastDate = Carbon::now()->subDay();
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'expires_at' => $pastDate->toISOString(),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'expires_at' => $pastDate->toDateTimeString(),
+        ]);
+    }
+
+    #[Test]
+    public function it_requires_authentication_for_editing()
+    {
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+        ]);
+
+        $response = $this->patchJson('/api/urls/' . $url->id, [
+            'url' => 'https://new-example.com',
+        ]);
+
+        $response->assertStatus(401);
+    }
+
+    #[Test]
+    public function it_handles_empty_request_body()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, []);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        // No changes should be made
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+        ]);
+    }
+
+    #[Test]
+    public function it_can_remove_expiration_by_sending_empty_string()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->addDays(7),
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'expires_at' => '',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'expires_at' => null,
+        ]);
+    }
+
+    #[Test]
+    public function it_can_remove_expiration_by_sending_null()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->addDays(7),
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'expires_at' => null,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'expires_at' => null,
+        ]);
+    }
+
+    #[Test]
+    public function it_handles_frontend_behavior_when_expiration_checkbox_is_unchecked()
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $url = Url::factory()->create([
+            'original_url' => 'https://example.com',
+            'short_code' => 'abc123',
+            'expires_at' => Carbon::now()->addDays(7),
+            'user_id' => $user->id,
+        ]);
+
+        // Simulate frontend behavior: when checkbox is unchecked, expires_at is not sent at all
+        $response = $this->actingAs($user)->patchJson('/api/urls/' . $url->id, [
+            'url' => 'https://new-example.com',
+            // expires_at is not included in the request
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'original_url' => 'https://new-example.com',
+                'code' => 'abc123',
+                'success' => 'URL updated successfully',
+            ]);
+
+        // expires_at should be null because it wasn't sent.
+        $this->assertDatabaseHas('urls', [
+            'id' => $url->id,
+            'original_url' => 'https://new-example.com',
+            'expires_at' => null,
+        ]);
     }
 }

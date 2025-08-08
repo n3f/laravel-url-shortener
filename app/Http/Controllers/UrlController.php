@@ -22,7 +22,7 @@ class UrlController extends Controller
         $request->validate([
             'url' => 'required|url|max:2048',
             'short_code' => 'nullable|string|between:4,255|unique:urls,short_code',
-            'expires_at' => 'nullable|date|after:now',
+            'expires_at' => 'nullable|date',
         ]);
 
         $data = [
@@ -102,6 +102,55 @@ class UrlController extends Controller
             'short_code' => $url->short_code,
             'original_url' => $url->original_url,
         ]);
+    }
+
+    /**
+     * Update an existing short URL.
+     */
+    public function edit(int $id, Request $request): JsonResponse
+    {
+        $url = Url::where('id', $id)
+            ->where('user_id', Auth::user()->id)
+            ->first();
+
+        if (!$url) {
+            return UrlResponse::notFound();
+        }
+
+        $request->validate([
+            'url' => 'sometimes|required|url|max:2048',
+            'short_code' => 'sometimes|nullable|string|between:4,255|unique:urls,short_code,' . $id,
+            'expires_at' => 'sometimes|nullable|date',
+        ]);
+
+        $data = [];
+
+        // Update original URL if provided
+        if ($request->filled('url')) {
+            $data['original_url'] = $request->url;
+        }
+
+        // Update short code if provided
+        if ($request->filled('short_code')) {
+            $data['short_code'] = $request->short_code;
+        }
+
+        // Update expiration
+        $data['expires_at'] = $request->filled('expires_at') ? Carbon::parse($request->expires_at) : null;
+
+        // Only update if there are changes
+        if (!empty($data)) {
+            $url->update($data);
+        }
+
+        $response = [
+            'short_url' => $url->short_url,
+            'code' => $url->short_code,
+            'original_url' => $url->original_url,
+            'expires_at' => $url->expires_at?->toISOString(),
+        ];
+
+        return UrlResponse::success($response, 'URL updated successfully');
     }
 
     public function destroy(int $id) {
