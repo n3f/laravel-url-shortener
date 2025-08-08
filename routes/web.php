@@ -29,9 +29,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $order_by = request()->get('sort', 'created_at');
         $order_direction = request()->get('order', 'desc');
 
+        // Configurable pagination size - can be set via PAGINATION_PER_PAGE env var
+        $per_page = (int) config('app.pagination_per_page', 10);
         $urls = Url::where('user_id', Auth::user()->id)
             ->orderBy($order_by, $order_direction)
-            ->paginate(10);
+            ->paginate($per_page);
         return Inertia::render('dashboard', [
             'urls' => $urls,
         ]);

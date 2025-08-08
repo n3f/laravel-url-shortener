@@ -135,4 +135,16 @@ return [
 
     'allow_registration' => env('ALLOW_REGISTRATION', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pagination Settings
+    |--------------------------------------------------------------------------
+    |
+    | This option determines the number of items per page for pagination.
+    | Can be overridden via environment variable.
+    |
+    */
+
+    'pagination_per_page' => env('PAGINATION_PER_PAGE', 10),
+
 ];
