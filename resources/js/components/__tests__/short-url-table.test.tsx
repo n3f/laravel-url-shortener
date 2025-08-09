@@ -3,13 +3,17 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ShortUrlTable from '../short-url-table';
 import type { Pagination, Url } from '@/types';
-import { router } from '@inertiajs/react';
 
 vi.mock('@inertiajs/react', () => ({
     router: {
         put: vi.fn(),
         delete: vi.fn(),
     },
+    usePage: () => ({
+        props: {
+            csrf_token: 'test-csrf-token',
+        },
+    }),
 }));
 
 const mockUrls: Pagination<Url> = {
@@ -278,8 +282,11 @@ describe('ShortUrlTable', () => {
 
                 it('submits form with updated data', async () => {
             const user = userEvent.setup();
-            const mockPut = vi.fn();
-            vi.spyOn(router, 'put').mockImplementation(mockPut);
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve({ success: true })
+            });
+            global.fetch = mockFetch;
 
             render(<ShortUrlTable urls={mockUrls} />);
 
@@ -296,16 +303,22 @@ describe('ShortUrlTable', () => {
             // Submit form
             await user.click(screen.getByText('Update URL'));
 
-            expect(mockPut).toHaveBeenCalledWith('/api/urls/1', {
-                url: 'https://updated-example.com',
-                short_code: 'abc123'
-            }, expect.any(Object));
+            expect(mockFetch).toHaveBeenCalledWith('/api/urls/1', expect.objectContaining({
+                method: 'PATCH',
+                body: JSON.stringify({
+                    url: 'https://updated-example.com',
+                    short_code: 'abc123'
+                })
+            }));
         });
 
                 it('closes modal after successful update', async () => {
             const user = userEvent.setup();
-            const mockPut = vi.fn();
-            vi.spyOn(router, 'put').mockImplementation(mockPut);
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve({ success: true })
+            });
+            global.fetch = mockFetch;
 
             render(<ShortUrlTable urls={mockUrls} />);
 
@@ -316,13 +329,16 @@ describe('ShortUrlTable', () => {
             await user.click(screen.getByText('Update URL'));
 
             // Verify the update was called (modal closing is handled by the component)
-            expect(mockPut).toHaveBeenCalled();
+            expect(mockFetch).toHaveBeenCalled();
         });
 
                 it('handles update errors gracefully', async () => {
             const user = userEvent.setup();
-            const mockPut = vi.fn();
-            vi.spyOn(router, 'put').mockImplementation(mockPut);
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve({ success: true })
+            });
+            global.fetch = mockFetch;
 
             render(<ShortUrlTable urls={mockUrls} />);
 
@@ -333,7 +349,7 @@ describe('ShortUrlTable', () => {
             await user.click(screen.getByText('Update URL'));
 
             // Verify the update was called (error handling is tested in integration tests)
-            expect(mockPut).toHaveBeenCalled();
+            expect(mockFetch).toHaveBeenCalled();
         });
     });
 });

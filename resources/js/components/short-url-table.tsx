@@ -12,7 +12,7 @@ import { PaginationInfo } from '@/components/ui/pagination-info';
 import { PaginationControls } from '@/components/ui/pagination';
 import { Copy, ExternalLink, Calendar, Link, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ShortUrlForm } from '@/components/short-url-form';
 
@@ -47,6 +47,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
     const [copied, setCopied] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const timeoutRef = useRef<NodeJS.Timeout>(null);
+    const { props } = usePage();
 
     useEffect(() => {
         return () => {
@@ -92,19 +93,40 @@ function ShortUrlTableRow({ url }: { url: Url }) {
         setShowEditModal(true);
     };
 
-    const handleEditSubmit = (data: Record<string, string>) => {
-        // TODO: Call update API endpoint
-        console.log('Updating URL with ID:', url.id, data);
+    const handleEditSubmit = async (data: Record<string, string>) => {
+        try {
+            const requestUrl = `/api/urls/${url.id}`;
 
-        // Submit to backend
-        router.put(`/api/urls/${url.id}`, data, {
-            onSuccess: () => {
+            // Use fetch for PATCH request since Inertia router doesn't support PATCH
+            const response = await fetch(requestUrl, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': String(props.csrf_token || ''),
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
                 setShowEditModal(false);
-            },
-            onError: (errors: Record<string, string>) => {
-                console.error('Update failed:', errors);
-            },
-        });
+                // Refresh the page to show updated data
+                window.location.reload();
+            } else {
+                console.error('Response status:', response.status);
+                console.error('Response status text:', response.statusText);
+                try {
+                    const errorData = await response.json();
+                    console.error('Update failed:', errorData);
+                } catch (e) {
+                    console.error('Could not parse error response:', e);
+                    const text = await response.text();
+                    console.error('Raw response:', text);
+                }
+            }
+        } catch (error) {
+            console.error('Error updating URL:', error);
+        }
     };
 
     return (
@@ -116,7 +138,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                             variant="copy"
                             size="sm"
                             className="h-auto p-2 flex items-center gap-2"
-                            onClick={() => copyToClipboard(url.short_url || `${window.location.origin}/${url.short_code}`)}
+                            onClick={() => copyToClipboard(url.short_url || `/${url.short_code}`)}
                             data-testid="copy-button"
                         >
                             <span className="font-mono text-sm">{url.short_code}</span>
@@ -198,7 +220,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
 
             {/* Edit Modal */}
             <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-2xl w-full">
                     <DialogHeader>
                         <DialogTitle>Edit Short URL</DialogTitle>
                         <DialogDescription>

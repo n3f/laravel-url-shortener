@@ -107,7 +107,7 @@ class UrlController extends Controller
     /**
      * Update an existing short URL.
      */
-    public function edit(int $id, Request $request): JsonResponse
+    public function edit(int $id, Request $request): JsonResponse|RedirectResponse
     {
         $url = Url::where('id', $id)
             ->where('user_id', Auth::user()->id)
@@ -117,11 +117,15 @@ class UrlController extends Controller
             return UrlResponse::notFound();
         }
 
-        $request->validate([
+        $validators = [
             'url' => 'sometimes|required|url|max:2048',
-            'short_code' => 'sometimes|nullable|string|between:4,255|unique:urls,short_code,' . $id,
             'expires_at' => 'sometimes|nullable|date',
-        ]);
+        ];
+        if ($request->filled('short_code') && $request->short_code !== $url->short_code) {
+            $validators['short_code'] = 'sometimes|nullable|string|between:4,255|unique:urls,short_code,' . $id;
+        }
+
+        $request->validate($validators);
 
         $data = [];
 

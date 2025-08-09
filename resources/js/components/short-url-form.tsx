@@ -86,14 +86,9 @@ export function ShortUrlForm({
         }
 
         const expirationDate = new Date(expires_at);
-        const now = new Date();
 
         if (isNaN(expirationDate.getTime())) {
             return 'Please enter a valid date';
-        }
-
-        if (expirationDate <= now) {
-            return 'Expiration date must be in the future';
         }
 
         return undefined;
@@ -203,56 +198,43 @@ export function ShortUrlForm({
 
     return (
         <div className={`${className} flex items-center justify-center min-h-full w-full`}>
-            <form onSubmit={handleSubmit} className="w-full" noValidate>
-                <div className="grid grid-cols-12 gap-4" style={{ gridTemplateRows: showExpiration ? 'auto auto auto' : 'auto auto' }}>
-                    {/* General errors not tied to specific form fields */}
-                    {Object.entries(errors)
-                        .filter(([key]) => !['url', 'alias', 'expires_at'].includes(key))
-                        .map(([key, value]) => (
-                            <div key={key} className="col-span-12">
-                                <Alert variant="destructive">
-                                    <AlertDescription>{value}</AlertDescription>
-                                </Alert>
-                            </div>
-                        ))}
+            <form onSubmit={handleSubmit} className="w-full space-y-4" noValidate>
+                {/* General errors not tied to specific form fields */}
+                {Object.entries(errors)
+                    .filter(([key]) => !['url', 'alias', 'expires_at'].includes(key))
+                    .map(([key, value]) => (
+                        <Alert key={key} variant="destructive">
+                            <AlertDescription>{value}</AlertDescription>
+                        </Alert>
+                    ))}
 
-                    {/* URL Error */}
+                {/* URL Section */}
+                <div className="space-y-2">
+                    <Label htmlFor="url" className="text-sm font-medium">
+                        Enter the URL:
+                    </Label>
+                    <Input
+                        type="url"
+                        id="url"
+                        name="url"
+                        value={formData.url || ''}
+                        onChange={(e) => handleInputChange('url', e.target.value)}
+                        placeholder="https://example.com"
+                        className="w-full"
+                        aria-invalid={!!errors.url}
+                    />
                     {errors.url && (
-                        <div className="col-span-12">
-                            <Alert variant="destructive">
-                                <AlertDescription>{errors.url}</AlertDescription>
-                            </Alert>
-                        </div>
+                        <Alert variant="destructive">
+                            <AlertDescription>{errors.url}</AlertDescription>
+                        </Alert>
                     )}
-                    {/* URL Input */}
-                    <div className="col-span-12 flex items-center gap-4">
-                        <Label htmlFor="url" className="whitespace-nowrap w-32 text-sm font-medium">
-                            Enter the URL:
-                        </Label>
-                        <Input
-                            type="url"
-                            id="url"
-                            name="url"
-                            value={formData.url || ''}
-                            onChange={(e) => handleInputChange('url', e.target.value)}
-                            placeholder="https://example.com"
-                            className="flex-1"
-                            aria-invalid={!!errors.url}
-                        />
-                    </div>
+                </div>
 
-                    {/* Alias Error */}
-                    {errors.alias && (
-                        <div className="col-span-12">
-                            <Alert variant="destructive">
-                                <AlertDescription>{errors.alias}</AlertDescription>
-                            </Alert>
-                        </div>
-                    )}
-
-                    {/* Alias Input */}
-                    <div className="col-span-6 flex items-center gap-4 w-full">
-                        <Label htmlFor="alias" className="whitespace-nowrap w-32 text-sm font-medium">
+                {/* Alias and Expiration Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Alias Section */}
+                    <div className="space-y-2">
+                        <Label htmlFor="alias" className="text-sm font-medium">
                             Alias (optional):
                         </Label>
                         <Input
@@ -262,13 +244,18 @@ export function ShortUrlForm({
                             value={formData.alias || ''}
                             onChange={(e) => handleInputChange('alias', e.target.value)}
                             placeholder="my-custom-alias"
-                            className="flex-1"
+                            className="w-full"
                             aria-invalid={!!errors.alias}
                         />
+                        {errors.alias && (
+                            <Alert variant="destructive">
+                                <AlertDescription>{errors.alias}</AlertDescription>
+                            </Alert>
+                        )}
                     </div>
 
-                    {/* Checkbox */}
-                    <div className="col-span-2 flex items-center justify-center gap-2">
+                    {/* Expiration Toggle */}
+                    <div className="flex items-end space-x-2 pb-2">
                         <Label htmlFor={`show-expiration-${isEditMode ? 'edit' : 'create'}`} className="text-sm">
                             expires?
                         </Label>
@@ -278,45 +265,39 @@ export function ShortUrlForm({
                             onCheckedChange={handleExpirationToggle}
                         />
                     </div>
+                </div>
 
-                    {/* Submit Button - spans both rows when expiration is shown */}
-                    <div className={`col-span-4 ${showExpiration ? 'row-span-2' : ''}`}>
-                        <Button
-                            type="submit"
-                            disabled={hasErrors || isSubmitting}
-                            className="w-full h-full"
-                        >
-                            {isSubmitting ? (isEditMode ? 'Updating...' : 'Shortening...') : submitButtonText}
-                        </Button>
-                    </div>
-
-                    {/* Expiration Error */}
-                    {showExpiration && errors.expires_at && (
-                        <div className="col-span-12">
+                {/* Expiration Input - only shown when checkbox is checked */}
+                {showExpiration && (
+                    <div className="space-y-2">
+                        <Label htmlFor="expires_at" className="text-sm font-medium">
+                            Expiration:
+                        </Label>
+                        {errors.expires_at && (
                             <Alert variant="destructive">
                                 <AlertDescription>{errors.expires_at}</AlertDescription>
                             </Alert>
-                        </div>
-                    )}
+                        )}
+                        <Input
+                            type="datetime-local"
+                            id="expires_at"
+                            name="expires_at"
+                            value={formData.expires_at || ''}
+                            onChange={(e) => handleInputChange('expires_at', e.target.value)}
+                            className="w-full"
+                            aria-invalid={!!errors.expires_at}
+                        />
+                    </div>
+                )}
 
-                    {/* Expiration Input - only shown when checkbox is checked */}
-                    {showExpiration && (
-                        <div className="col-span-8 flex items-center gap-4">
-                            <Label htmlFor="expires_at" className="whitespace-nowrap w-32 text-sm font-medium">
-                                Expiration:
-                            </Label>
-                            <Input
-                                type="datetime-local"
-                                id="expires_at"
-                                name="expires_at"
-                                value={formData.expires_at || ''}
-                                onChange={(e) => handleInputChange('expires_at', e.target.value)}
-                                className="flex-1"
-                                aria-invalid={!!errors.expires_at}
-                            />
-                        </div>
-                    )}
-                </div>
+                {/* Submit Button */}
+                <Button
+                    type="submit"
+                    disabled={hasErrors || isSubmitting}
+                    className="w-full"
+                >
+                    {isSubmitting ? (isEditMode ? 'Updating...' : 'Shortening...') : submitButtonText}
+                </Button>
             </form>
         </div>
     );

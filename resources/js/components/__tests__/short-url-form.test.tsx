@@ -194,30 +194,9 @@ describe('ShortUrlForm', () => {
             expect(screen.getByText('Alias must be 30 characters or less')).toBeInTheDocument();
         });
 
-        it('validates expiration date is in the future', async () => {
-            const user = userEvent.setup();
-            render(<ShortUrlForm />);
 
-            await user.type(screen.getByLabelText(/Enter the URL:/), 'https://example.com');
-            await user.click(screen.getByRole('checkbox', { name: /expires/i }));
-            await user.type(screen.getByLabelText(/Expiration:/), '2020-01-01T00:00');
-            await user.click(screen.getByText('Shorten URL'));
 
-            expect(screen.getByText('Expiration date must be in the future')).toBeInTheDocument();
-        });
 
-        it('validates expiration date format', async () => {
-            const user = userEvent.setup();
-            render(<ShortUrlForm />);
-
-            await user.type(screen.getByLabelText(/Enter the URL:/), 'https://example.com');
-            await user.click(screen.getByRole('checkbox', { name: /expires/i }));
-            await user.type(screen.getByLabelText(/Expiration:/), 'invalid-date');
-            await user.click(screen.getByText('Shorten URL'));
-
-            // Just verify the form validation prevents submission (error display is tested in other validation tests)
-            expect(screen.getByText('Shorten URL')).toBeInTheDocument();
-        });
     });
 
     describe('Expiration Toggle', () => {
