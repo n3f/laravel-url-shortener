@@ -8,6 +8,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ShortUrlFormProps {
     className?: string;
+    submitButtonText?: string;
+    initialData?: {
+        url?: string;
+        alias?: string;
+        expires_at?: string;
+    };
+    onSubmit?: (data: Record<string, string>) => void;
+    isEditMode?: boolean;
 }
 
 interface FormData {
@@ -18,9 +26,15 @@ interface FormData {
 
 type FormErrors = { [K in keyof FormData]?: string } & { [key: string]: string | undefined };
 
-export function ShortUrlForm({ className }: ShortUrlFormProps) {
-    const [formData, setFormData] = useState<FormData>({});
-    const [showExpiration, setShowExpiration] = useState(false);
+export function ShortUrlForm({
+    className,
+    submitButtonText = 'Shorten URL',
+    initialData = {},
+    onSubmit,
+    isEditMode = false
+}: ShortUrlFormProps) {
+    const [formData, setFormData] = useState<FormData>(initialData);
+    const [showExpiration, setShowExpiration] = useState(!!initialData.expires_at);
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [validationTimeouts, setValidationTimeouts] = useState<Record<string, NodeJS.Timeout>>({});
@@ -123,6 +137,7 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
     };
 
     const handleExpirationToggle = (checked: boolean) => {
+        console.log('Expiration toggle clicked:', checked);
         setShowExpiration(checked);
         if (!checked) {
             setFormData(prev => ({ ...prev, expires_at: undefined }));
@@ -159,19 +174,24 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
                 payload.expires_at = localDate.toISOString();
             }
 
-            // Submit to backend
-            router.post('/api/urls', payload, {
-                onSuccess: () => {
-                    // Reset form on success
-                    setFormData({});
-                    setShowExpiration(false);
-                    setErrors({});
-                },
-                onError: (errors: Record<string, string>) => {
-                    // Handle validation errors from backend
-                    setErrors(errors);
-                },
-            });
+            if (onSubmit) {
+                // Use custom submit handler (for edit mode)
+                onSubmit(payload);
+            } else {
+                // Default behavior (create new URL)
+                router.post('/api/urls', payload, {
+                    onSuccess: () => {
+                        // Reset form on success
+                        setFormData({});
+                        setShowExpiration(false);
+                        setErrors({});
+                    },
+                    onError: (errors: Record<string, string>) => {
+                        // Handle validation errors from backend
+                        setErrors(errors);
+                    },
+                });
+            }
         } catch (error) {
             console.error('Error submitting form:', error);
         } finally {
@@ -249,11 +269,11 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
 
                     {/* Checkbox */}
                     <div className="col-span-2 flex items-center justify-center gap-2">
-                        <Label htmlFor="show-expiration" className="text-sm">
+                        <Label htmlFor={`show-expiration-${isEditMode ? 'edit' : 'create'}`} className="text-sm">
                             expires?
                         </Label>
                         <Checkbox
-                            id="show-expiration"
+                            id={`show-expiration-${isEditMode ? 'edit' : 'create'}`}
                             checked={showExpiration}
                             onCheckedChange={handleExpirationToggle}
                         />
@@ -266,7 +286,7 @@ export function ShortUrlForm({ className }: ShortUrlFormProps) {
                             disabled={hasErrors || isSubmitting}
                             className="w-full h-full"
                         >
-                            {isSubmitting ? 'Shortening...' : 'Shorten URL'}
+                            {isSubmitting ? (isEditMode ? 'Updating...' : 'Shortening...') : submitButtonText}
                         </Button>
                     </div>
 

@@ -10,9 +10,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { PaginationControls } from '@/components/ui/pagination';
-import { Copy, ExternalLink, Calendar, Link, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, Calendar, Link, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ShortUrlForm } from '@/components/short-url-form';
 
 // Simple date formatting function
 function formatRelativeTime(date: string | Date): string {
@@ -43,6 +45,7 @@ function ShortUrlTableHeader() {
 
 function ShortUrlTableRow({ url }: { url: Url }) {
     const [copied, setCopied] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const timeoutRef = useRef<NodeJS.Timeout>(null);
 
     useEffect(() => {
@@ -76,12 +79,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
     const handleDelete = async (urlId: number) => {
         // TODO: Add confirmation dialog
         try {
-            // TODO: Call delete API endpoint
-            console.log('Deleting URL with ID:', urlId);
-
-            // Submit to backend
             router.delete(`/api/urls/${urlId}`);
-
         } catch (error) {
             console.error('Failed to delete URL:', error);
         }
@@ -89,6 +87,25 @@ function ShortUrlTableRow({ url }: { url: Url }) {
 
     const isExpired = url.expires_at && new Date(url.expires_at) < new Date();
     const expiresIn = url.expires_at ? formatRelativeTime(url.expires_at) : null;
+
+    const handleEdit = () => {
+        setShowEditModal(true);
+    };
+
+    const handleEditSubmit = (data: Record<string, string>) => {
+        // TODO: Call update API endpoint
+        console.log('Updating URL with ID:', url.id, data);
+
+        // Submit to backend
+        router.put(`/api/urls/${url.id}`, data, {
+            onSuccess: () => {
+                setShowEditModal(false);
+            },
+            onError: (errors: Record<string, string>) => {
+                console.error('Update failed:', errors);
+            },
+        });
+    };
 
     return (
         <div className="group grid grid-cols-12 gap-4 px-3 py-3 text-sm border-b hover:bg-muted/50 transition-colors items-center even:bg-muted/25">
@@ -161,6 +178,13 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                            variant="default"
+                            onClick={handleEdit}
+                        >
+                            <Edit className="h-4 w-4" />
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                             variant="destructive"
                             onClick={() => handleDelete(url.id)}
                         >
@@ -170,6 +194,27 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
+            {/* Edit Modal */}
+            <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>Edit Short URL</DialogTitle>
+                    </DialogHeader>
+                    <ShortUrlForm
+                        key={`edit-form-${url.id}`}
+                        submitButtonText="Update URL"
+                        initialData={{
+                            url: url.original_url,
+                            alias: url.short_code,
+                            expires_at: url.expires_at ? new Date(url.expires_at).toISOString().slice(0, 16) : undefined,
+                        }}
+                        onSubmit={handleEditSubmit}
+                        isEditMode={true}
+                        className="p-0"
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
