@@ -13,7 +13,7 @@ import { PaginationControls } from '@/components/ui/pagination';
 import { Copy, ExternalLink, Calendar, Link, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ShortUrlForm } from '@/components/short-url-form';
 
 // Simple date formatting function
@@ -171,6 +171,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
+                            data-testid="actions-dropdown"
                         >
                             <span className="sr-only">Actions</span>
                             <MoreHorizontal className="h-4 w-4" />
@@ -200,6 +201,9 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Edit Short URL</DialogTitle>
+                        <DialogDescription>
+                            Update the URL, alias, or expiration date for this short link.
+                        </DialogDescription>
                     </DialogHeader>
                     <ShortUrlForm
                         key={`edit-form-${url.id}`}
