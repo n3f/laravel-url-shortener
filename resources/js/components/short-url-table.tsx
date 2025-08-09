@@ -131,7 +131,7 @@ function ShortUrlTableRow({ url }: { url: Url }) {
 
     return (
         <div className="group grid grid-cols-12 gap-4 px-3 py-3 text-sm border-b hover:bg-muted/50 transition-colors items-center even:bg-muted/25">
-            <div className="col-span-4 sm:col-span-3">
+            <div className="col-span-4 sm:col-span-3 md:col-span-2">
                 <Tooltip open={copied}>
                     <TooltipTrigger asChild>
                         <Button
@@ -150,13 +150,14 @@ function ShortUrlTableRow({ url }: { url: Url }) {
                     </TooltipContent>
                 </Tooltip>
             </div>
-            <div className="col-span-6 md:col-span-5 flex items-center gap-2">
+            <div className="col-span-6 md:col-span-6 flex items-center gap-2 overflow-hidden">
                 <a
                     href={url.original_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 hover:text-foreground hover:underline transition-colors p-3 -m-3 rounded"
                     data-testid="external-link"
+                    title={url.original_url}
                 >
                     <span className="truncate text-muted-foreground">{url.original_url}</span>
                     <ExternalLink className="h-3 w-3" />
