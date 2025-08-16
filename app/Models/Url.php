@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Sqids\Sqids;
 
 class Url extends Model
@@ -24,6 +25,10 @@ class Url extends Model
     protected $casts = [
         'expires_at' => 'datetime',
         'clicks' => 'integer',
+    ];
+
+    protected $appends = [
+        'short_url',
     ];
 
     /**
@@ -46,9 +51,9 @@ class Url extends Model
     /**
      * Get the full short URL.
      */
-    public function getShortUrlAttribute(): string
+    protected function shortUrl(): Attribute
     {
-        return url($this->short_code);
+        return Attribute::get(fn () => url($this->short_code));
     }
 
     /**
