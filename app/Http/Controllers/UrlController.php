@@ -21,7 +21,7 @@ class UrlController extends Controller
     {
         $request->validate([
             'url' => 'required|url|max:2048',
-            'short_code' => 'nullable|string|between:4,255|unique:urls,short_code',
+            'short_code' => 'nullable|string|between:2,255|unique:urls,short_code',
             'expires_at' => 'nullable|date',
         ]);
 
