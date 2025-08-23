@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Url;
+use App\Models\UrlLog;
 use App\Http\Responses\UrlResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Inertia\Inertia;
@@ -63,19 +65,32 @@ class UrlController extends Controller
     {
         $url = Url::where('short_code', $code)->first();
 
-        if (!$url) {
-            return UrlResponse::notFound();
+        try {
+            if (!$url) {
+                // Log the attempt before returning
+                $this->logUrlAttempt($code, $url, $request);
+                return UrlResponse::notFound();
+            }
+
+            // Check if URL has expired
+            if ($url->expires_at && $url->expires_at->isPast()) {
+                // Log the attempt before returning
+                $this->logUrlAttempt($code, $url, $request);
+                return UrlResponse::gone();
+            }
+
+            // Increment click count
+            $url->incrementClicks();
+
+            // Log the attempt
+            $this->logUrlAttempt($code, $url, $request);
+
+            return redirect($url->original_url);
+
+        } catch (\Exception $e) {
+            $this->logUrlAttempt($code, $url, $request, UrlLog::STATUS_ERROR);
+            return UrlResponse::serverError();
         }
-
-        // Check if URL has expired
-        if ($url->expires_at && $url->expires_at->isPast()) {
-            return UrlResponse::gone();
-        }
-
-        // Increment click count
-        $url->incrementClicks();
-
-        return redirect($url->original_url);
     }
 
     /**
@@ -172,5 +187,48 @@ class UrlController extends Controller
         }
 
         return UrlResponse::created(['code' => 'URL_DELETED'], 'URL deleted');
+    }
+
+    /**
+     * Log URL access attempt.
+     */
+    private function logUrlAttempt(string $code, ?Url $url, Request $request, string|null $status = null): void
+    {
+        $status = $status == UrlLog::STATUS_ERROR ? $status : $this->determineStatus($url);
+
+        try {
+            UrlLog::create([
+                'request_path' => $code,
+                'url_id' => $url?->id,
+                'target_url' => $url?->original_url,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'referer' => $request->header('referer'),
+                'status' => $status,
+            ]);
+        } catch (\Exception $e) {
+            // Log the error but don't break the redirect
+            Log::error('Failed to log URL attempt: ' . $e->getMessage(), [
+                'code' => $code,
+                'url_id' => $url?->id,
+                'status' => $status,
+            ]);
+        }
+    }
+
+    /**
+     * Determine the status of the URL access attempt.
+     */
+    private function determineStatus(?Url $url): string
+    {
+        if (!$url) {
+            return UrlLog::STATUS_NOT_FOUND;
+        }
+
+        if ($url->expires_at && $url->expires_at->isPast()) {
+            return UrlLog::STATUS_EXPIRED;
+        }
+
+        return UrlLog::STATUS_SUCCESS;
     }
 }

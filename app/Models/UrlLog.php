@@ -26,6 +26,7 @@ class UrlLog extends Model
     public const STATUS_SUCCESS = 'success';
     public const STATUS_NOT_FOUND = 'not_found';
     public const STATUS_ERROR = 'error';
+    public const STATUS_EXPIRED = 'expired';
 
     public function url(): BelongsTo
     {

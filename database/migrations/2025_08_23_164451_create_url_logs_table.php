@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent', 500)->nullable();
             $table->string('referer', 2048)->nullable();
-            $table->enum('status', ['success', 'not_found', 'error'])->default('success');
+            $table->enum('status', ['success', 'not_found', 'error', 'expired'])->default('success');
             $table->timestamps();
         });
     }
