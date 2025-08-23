@@ -50,4 +50,6 @@ Route::middleware(['auth', 'verified', 'throttle:10,1'])->group(function () {
     Route::get('/api/urls/{id}/stats', [App\Http\Controllers\UrlController::class, 'stats'])->name('urls.stats');
     Route::delete('/api/urls/{id}', [App\Http\Controllers\UrlController::class, 'destroy'])->name('urls.destroy');
 });
-Route::get('/{code}', [App\Http\Controllers\UrlController::class, 'redirect'])->name('url.redirect');
+Route::middleware(['throttle:10,1'])->group(function () {
+    Route::get('/{code}', [App\Http\Controllers\UrlController::class, 'redirect'])->name('url.redirect');
+});
