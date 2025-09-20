@@ -235,6 +235,24 @@ GET /{short_code}
 
 Returns a 302 redirect to the original URL.
 
+## Deployment
+
+### NearlyFreeSpeech.net
+
+```bash
+rsync -avz --exclude='public'--exclude='.git' --exclude='node_modules' --exclude='storage/logs/*' \
+--exclude='storage/framework/cache/*' --exclude='storage/framework/sessions/*' \
+--exclude='storage/framework/views/*' --exclude='.env' --exclude='vendor' \
+--exclude='.DS_Store' --exclude='*.log' --exclude='database/*.sqlite' . \
+$USERNAME@$SERVER:/home/protected/laravel-app/
+```
+
+- Check if public directory was transferred, re-softlink it was changed (should be `public -> ../../public`)
+- Run `./scripts/adjust-nearlyfreespeech-permissions.sh`
+- Run `php artisan optimize:clear`
+- Run `php artisan migrate`
+- Run `php artisan optimize`
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
