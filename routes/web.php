@@ -44,12 +44,12 @@ require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
 
 // URL Shortener Routes
-Route::middleware(['auth', 'verified', 'throttle:10,1'])->group(function () {
+Route::middleware(['auth', 'verified', 'throttle:urls'])->group(function () {
     Route::post('/api/urls', [App\Http\Controllers\UrlController::class, 'store'])->name('urls.store');
     Route::patch('/api/urls/{id}', [App\Http\Controllers\UrlController::class, 'edit'])->name('urls.edit');
     Route::get('/api/urls/{id}/stats', [App\Http\Controllers\UrlController::class, 'stats'])->name('urls.stats');
     Route::delete('/api/urls/{id}', [App\Http\Controllers\UrlController::class, 'destroy'])->name('urls.destroy');
 });
-Route::middleware(['throttle:10,1'])->group(function () {
+Route::middleware(['throttle:urls'])->group(function () {
     Route::get('/{code}', [App\Http\Controllers\UrlController::class, 'redirect'])->name('url.redirect');
 });
