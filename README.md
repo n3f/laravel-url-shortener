@@ -239,19 +239,45 @@ Returns a 302 redirect to the original URL.
 
 ### NearlyFreeSpeech.net
 
+**Sync files to server:**
 ```bash
-rsync -avz --exclude='public'--exclude='.git' --exclude='node_modules' --exclude='storage/logs/*' \
+rsync -avz --exclude='public' --exclude='.git' --exclude='node_modules' --exclude='storage/logs/*' \
 --exclude='storage/framework/cache/*' --exclude='storage/framework/sessions/*' \
 --exclude='storage/framework/views/*' --exclude='.env' --exclude='vendor' \
 --exclude='.DS_Store' --exclude='*.log' --exclude='database/*.sqlite' . \
 $USERNAME@$SERVER:/home/protected/laravel-app/
 ```
 
-- Check if public directory was transferred, re-softlink it was changed (should be `public -> ../../public`)
-- Run `./scripts/adjust-nearlyfreespeech-permissions.sh`
-- Run `php artisan optimize:clear`
-- Run `php artisan migrate`
-- Run `php artisan optimize`
+**Simple code update** (no dependency changes):
+```bash
+# On the server
+php artisan optimize:clear
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+**Full upgrade** (after updating composer.json or package.json):
+```bash
+# On the server
+# 1. Check public directory symlink (should be `public -> ../../public`)
+# 2. Install/update dependencies
+composer install --no-dev --optimize-autoloader
+npm ci --production
+# 3. Build frontend assets
+npm run build
+# 4. Adjust permissions
+./scripts/adjust-nearlyfreespeech-permissions.sh
+# 5. Clear and optimize -- run the steps from the simple code update section
+php artisan optimize:clear
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+**Note:** For major upgrades (e.g., Laravel, Vite, React), consider running tests locally first and reviewing upgrade guides for breaking changes.
 
 ## License
 
