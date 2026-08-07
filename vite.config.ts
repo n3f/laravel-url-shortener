@@ -14,13 +14,10 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
-    esbuild: {
-        jsx: 'automatic',
-    },
     resolve: {
         alias: {
-            'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
-            '@assets': resolve(__dirname, 'resources/assets'),
+            'ziggy-js': resolve(import.meta.dirname, 'vendor/tightenco/ziggy'),
+            '@assets': resolve(import.meta.dirname, 'resources/assets'),
         },
     },
 });
