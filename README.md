@@ -4,11 +4,11 @@ A modern, feature-rich URL shortener built with Laravel, React, and TypeScript. 
 
 ## Overview
 
-This URL shortener provides a complete solution for creating and managing short URLs with a focus on user experience and functionality. Built with Laravel 12 on the backend and React with TypeScript on the frontend, it offers a modern, responsive interface with dark/light mode support.
+This URL shortener provides a complete solution for creating and managing short URLs with a focus on user experience and functionality. Built with Laravel 13 on the backend and React with TypeScript on the frontend, it offers a modern, responsive interface with dark/light mode support.
 
 ### Tech Stack
 
-- **Backend**: Laravel 12, PHP 8.2+
+- **Backend**: Laravel 13, PHP 8.3+
 - **Frontend**: React 19, TypeScript, Tailwind CSS
 - **Database**: SQLite (default), MySQL, PostgreSQL
 - **Testing**: PHPUnit, Vitest
@@ -50,7 +50,7 @@ This URL shortener provides a complete solution for creating and managing short 
 ## Building
 
 ### Prerequisites
-- PHP 8.2 or higher
+- PHP 8.3 or higher
 - Node.js 18 or higher
 - Composer
 - npm or yarn
@@ -95,6 +95,36 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
+
+### Updating Dependencies
+
+Use [`scripts/update-deps.sh`](scripts/update-deps.sh) to bump Composer and npm deps to current stable.
+
+**Preconditions (enforced by the script):**
+- Clean git working tree — including untracked files (`git status --porcelain` must be empty)
+- Green baseline tests for the suites you are updating (skipped on `--dry-run`)
+
+```bash
+# Within existing constraints (default)
+./scripts/update-deps.sh
+
+# Bump to latest stable majors (Laravel first-party constraints + npm-check-updates)
+./scripts/update-deps.sh --major
+
+# Report only (clean tree required; no tests, no writes)
+./scripts/update-deps.sh --dry-run
+./scripts/update-deps.sh --major --dry-run
+
+# Scope to one ecosystem (baseline/post tests match the scope)
+./scripts/update-deps.sh --composer-only
+./scripts/update-deps.sh --npm-only --major
+
+# Escape hatches
+./scripts/update-deps.sh --skip-tests   # still runs baseline; skips post-update tests
+./scripts/update-deps.sh --force        # skip clean-tree + baseline (dangerous)
+```
+
+**Minor vs major:** use the default for patch/minor within current caret ranges. Use `--major` when you intend to move to the next stable Laravel (and compatible npm updates). The script rejects a pinned set of frontend packages (`typescript`, `@inertiajs/react`, `vite`, `eslint`, etc.) so peer deps stay coherent — bump those manually after reading their upgrade notes. After a Laravel major bump, read the [upgrade guide](https://laravel.com/docs/upgrade), confirm `serializable_classes` in `config/cache.php`, and pin `CACHE_PREFIX` / `SESSION_COOKIE` / `REDIS_PREFIX` in `.env` if you rely on pre-13 default key/cookie naming. Then follow the deploy steps below once lockfiles change.
 
 ## Configuration
 
