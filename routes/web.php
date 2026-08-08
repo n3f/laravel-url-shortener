@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\UrlLogController;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'urls' => $urls,
         ]);
     })->name('dashboard');
+
+    Route::get('logs', [UrlLogController::class, 'index'])->name('logs.index');
 });
 
 require __DIR__.'/settings.php';

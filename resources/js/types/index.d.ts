@@ -72,6 +72,22 @@ export interface Url {
     [key: string]: unknown; // Allow for additional properties
 }
 
+export type UrlLogStatus = 'success' | 'not_found' | 'error' | 'expired';
+
+export interface UrlLog {
+    id: number;
+    request_path: string;
+    url_id: number | null;
+    target_url: string | null;
+    ip_address: string | null;
+    user_agent: string | null;
+    referer: string | null;
+    status: UrlLogStatus;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+}
+
 // Inertia.js Page Props
 export interface PageProps {
     auth: Auth;
@@ -81,4 +97,10 @@ export interface PageProps {
 // Dashboard specific props
 export interface DashboardProps extends PageProps {
     urls: Pagination<Url>;
+}
+
+export interface LogsIndexProps extends PageProps {
+    logs: Pagination<UrlLog>;
+    sort: string;
+    order: 'asc' | 'desc';
 }
