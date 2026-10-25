@@ -19,7 +19,9 @@ TARGET_LARAVEL_MAJOR=13
 TARGET_PHP_MAJOR=8
 TARGET_PHP_MINOR=3
 # Packages pinned for peer/backend compatibility; bump manually after review.
-NCU_REJECT='typescript,@inertiajs/react,lucide-react,eslint,@eslint/js,vite,laravel-vite-plugin,@vitejs/plugin-react,concurrently,jsdom,globals,@types/node,@testing-library/jest-dom,@types/testing-library__jest-dom'
+#   typescript: typescript-eslint supports <6.1. eslint/@eslint/js: eslint-plugin-react supports <=9.
+#   @types/node: track the Node major in use (24). @inertiajs/react: must match inertia-laravel major.
+NCU_REJECT='typescript,@inertiajs/react,eslint,@eslint/js,vite,laravel-vite-plugin,@types/node'
 
 usage() {
     cat <<'EOF'
