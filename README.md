@@ -8,7 +8,7 @@ This URL shortener provides a complete solution for creating and managing short 
 
 ### Tech Stack
 
-- **Backend**: Laravel 13, PHP 8.3+
+- **Backend**: Laravel 13, PHP 8.4+
 - **Frontend**: React 19, TypeScript, Tailwind CSS
 - **Database**: SQLite (default), MySQL, PostgreSQL
 - **Testing**: PHPUnit, Vitest
@@ -50,7 +50,7 @@ This URL shortener provides a complete solution for creating and managing short 
 ## Building
 
 ### Prerequisites
-- PHP 8.3 or higher
+- PHP 8.4 or higher (the locked Symfony 8 packages require 8.4.1+)
 - Node.js 18 or higher
 - Composer
 - npm or yarn
@@ -269,23 +269,27 @@ Returns a 302 redirect to the original URL.
 
 ### NearlyFreeSpeech.net
 
+**PHP version:** the web server's PHP version is set in the NFSN site settings and must be 8.4+. The server's default CLI `php` may be older, so call `php8.4` explicitly for `artisan` and `composer` (`php8.4 /usr/local/bin/composer ...`).
+
+**Production `.env`:** keep `APP_ENV=production` and `APP_DEBUG=false`; with debug on, error pages expose stack traces publicly. Re-run `php8.4 artisan config:cache` after any `.env` change.
+
 **Sync files to server:**
 ```bash
 rsync -avz --exclude='public' --exclude='.git' --exclude='node_modules' --exclude='storage/logs/*' \
 --exclude='storage/framework/cache/*' --exclude='storage/framework/sessions/*' \
 --exclude='storage/framework/views/*' --exclude='.env' --exclude='vendor' \
---exclude='.DS_Store' --exclude='*.log' --exclude='database/*.sqlite' . \
+--exclude='.DS_Store' --exclude='*.log' --exclude='database/*.sqlite' --exclude='database/*.bak' . \
 $USERNAME@$SERVER:/home/protected/laravel-app/
 ```
 
 **Simple code update** (no dependency changes):
 ```bash
 # On the server
-php artisan optimize:clear
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php8.4 artisan optimize:clear
+php8.4 artisan migrate --force
+php8.4 artisan config:cache
+php8.4 artisan route:cache
+php8.4 artisan view:cache
 ```
 
 **Full upgrade** (after updating composer.json or package.json):
@@ -293,18 +297,37 @@ php artisan view:cache
 # On the server
 # 1. Check public directory symlink (should be `public -> ../../public`)
 # 2. Install/update dependencies
-composer install --no-dev --optimize-autoloader
+php8.4 /usr/local/bin/composer install --no-dev --optimize-autoloader
 npm ci --production
 # 3. Build frontend assets
 npm run build
-# 4. Adjust permissions
+# 4. Adjust permissions (chgrp's files you own to the `web` group)
 ./scripts/adjust-nearlyfreespeech-permissions.sh
 # 5. Clear and optimize -- run the steps from the simple code update section
-php artisan optimize:clear
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php8.4 artisan optimize:clear
+php8.4 artisan migrate --force
+php8.4 artisan config:cache
+php8.4 artisan route:cache
+php8.4 artisan view:cache
+```
+
+The site returns 500s between step 2 and step 5 (stale caches against new vendor code), so run them back to back.
+
+**Pull the production database locally** (up-to-date logs, and a backup):
+```bash
+# Back up the local copy first
+cp -p database/database.sqlite "database/database.sqlite.local-$(date +%Y%m%d-%H%M%S).bak"
+# Take a consistent snapshot on the server (safe while the site is live), copy it down, clean up
+ssh $USERNAME@$SERVER 'sqlite3 /home/protected/laravel-app/database/database.sqlite ".backup /home/tmp/db-pull.sqlite"'
+scp $USERNAME@$SERVER:/home/tmp/db-pull.sqlite database/database.sqlite
+ssh $USERNAME@$SERVER 'rm /home/tmp/db-pull.sqlite'
+sqlite3 database/database.sqlite 'PRAGMA integrity_check;'
+```
+
+**Clear the server log:**
+```bash
+# On the server
+: > storage/logs/laravel.log
 ```
 
 **Note:** For major upgrades (e.g., Laravel, Vite, React), consider running tests locally first and reviewing upgrade guides for breaking changes.
